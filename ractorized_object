@@ -7,18 +7,12 @@ class RactorizedObject < Ractor
   class << self
     def new
       super do
-        unless @methods_wrapped
-          wrap_methods
+        unless Ractor[:wrapper]
+          Ractor.current.class.wrap_methods
         end
 
-        inside_wrapper = false
-
         loop do
-          puts "waiting for a message..."
-
           method_name, *args, return_port = receive
-
-          puts "got a message! #{method_name}"
 
           break if method_name == :close
 
@@ -28,7 +22,7 @@ class RactorizedObject < Ractor
             Ractor[:inside_wrapper] = true
 
             value = Ractor.current.__send__(method_name, *args)
-            puts "about to return #{value!}"
+
             return_port.send(value)
           ensure
             Ractor[:inside_wrapper] = old_inside_wrapper
@@ -73,7 +67,6 @@ end
 
 class Doubler < RactorizedObject
   def set(i)
-    puts "in set: #{Ractor.current.inspect} #{Ractor.current.object_id}"
     @i = i
   end
 
@@ -87,7 +80,8 @@ class Doubler < RactorizedObject
 end
 
 d = Doubler.new
-binding.pry
 d.set(10)
 d.double
 puts d.get
+
+sleep 2
