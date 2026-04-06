@@ -1,0 +1,93 @@
+#!/usr/bin/env ruby
+
+require "pry"
+require "pry-byebug"
+
+class RactorizedObject < Ractor
+  class << self
+    def new
+      super do
+        unless @methods_wrapped
+          wrap_methods
+        end
+
+        inside_wrapper = false
+
+        loop do
+          puts "waiting for a message..."
+
+          method_name, *args, return_port = receive
+
+          puts "got a message! #{method_name}"
+
+          break if method_name == :close
+
+          old_inside_wrapper = Ractor[:inside_ractor]
+
+          begin
+            Ractor[:inside_wrapper] = true
+
+            value = Ractor.current.__send__(method_name, *args)
+            puts "about to return #{value!}"
+            return_port.send(value)
+          ensure
+            Ractor[:inside_wrapper] = old_inside_wrapper
+          end
+        end
+      end
+    end
+
+    def wrap_methods
+      install_wrapper
+
+      instance_methods(false).each do |method_name|
+        wrap_method(method_name)
+      end
+    end
+
+    def wrap_method(method_name)
+      # define_method(method_name) do |*args|
+      #   return_port = Ractor::Port.new
+      #   send(method_name, *args, return_port)
+      #   return_port.receive
+      # end
+      s = <<~HERE
+        def #{method_name}(*args)
+          return super if Ractor[:inside_wrapper]
+
+          return_port = Ractor::Port.new
+          self << [:#{method_name}, args, return_port]
+          return_port.receive
+        end
+      HERE
+
+      Ractor[:wrapper].class_eval s
+    end
+
+    def install_wrapper
+      Ractor[:wrapper] = Module.new
+      prepend Ractor[:wrapper]
+    end
+  end
+end
+
+class Doubler < RactorizedObject
+  def set(i)
+    puts "in set: #{Ractor.current.inspect} #{Ractor.current.object_id}"
+    @i = i
+  end
+
+  def get
+    @i
+  end
+
+  def double
+    @i *= 2
+  end
+end
+
+d = Doubler.new
+binding.pry
+d.set(10)
+d.double
+puts d.get
