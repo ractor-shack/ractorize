@@ -6,29 +6,25 @@ require_relative "ractorized_object/promise"
 class RactorizedObject < Ractor
   class << self
     def new
-      unless const_defined?(:Wrapper)
-        wrap_methods
-      end
-
       super do
         ractor = Ractor.current
+        ractor_class = ractor.class
+
+        unless ractor_class.const_defined?(:Wrapper)
+          ractor_class.wrap_methods
+        end
 
         loop do
           method_name, *args, return_port = receive
 
           break if method_name == :close
 
-          old_inside_wrapper = Ractor[:inside_ractor]
+          m = ractor.class.instance_method(method_name).super_method
+          puts "about to bind_call #{method_name} in #{Ractor.current}"
+          value = m.bind_call(ractor, *args)
+          puts "got #{value}"
 
-          begin
-            Ractor[:inside_wrapper] = true
-
-            value = ractor.__send__(method_name, *args)
-
-            return_port.send(value)
-          ensure
-            Ractor[:inside_wrapper] = old_inside_wrapper
-          end
+          return_port.send(value)
         end
       end
     end
@@ -43,32 +39,25 @@ class RactorizedObject < Ractor
     end
 
     def wrap_method(method_name)
-      self::Wrapper.define_method :method_name do |*args|
-        return super if Ractor[:inside_wrapper]
+      s = <<~HERE
+        def #{method_name}(*args)
+          puts "#{method_name} called!"
+          return_port = Ractor::Port.new
+          self << [:#{method_name}, args, return_port]
+          return_port.receive
+        end
+      HERE
 
-        return_port = Ractor::Port.new
-        self << [method_name, args, return_port]
-        return_port.receive
-      end
-
-      # s = <<~HERE
-      #   def #{method_name}(*args)
-      #     return super if Ractor[:inside_wrapper]
-      #
-      #     return_port = Ractor::Port.new
-      #     self << [:#{method_name}, args, return_port]
-      #     return_port.receive
-      #   end
-      # HERE
-      #
-      # self::Wrapper.class_eval s
+      self::Wrapper.class_eval s
     end
 
     def wrap_method_async(method_name)
       self::Wrapper.define_method :"#{method_name}_async" do |*args|
+        puts "creating port in #{Ractor.current}"
         return_port = Ractor::Port.new
         self << [method_name, args, return_port]
-        Promise.new(return_port)
+        # return_port
+        "wtf"
       end
 
       # s = <<~HERE
