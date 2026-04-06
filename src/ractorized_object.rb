@@ -6,12 +6,10 @@ require_relative "ractorized_object/promise"
 class RactorizedObject < Ractor
   class << self
     def new
-      require "pry"
-      binding.pry
+      wrap_methods
 
       super do
         # methods have to be wrapped in here?? why???
-        self.class.wrap_methods
         ractor = Ractor.current
 
         loop do

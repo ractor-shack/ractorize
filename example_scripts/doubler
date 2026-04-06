@@ -26,9 +26,12 @@ d.double
 puts d.get
 
 d = Doubler.new
-sleep 1
+sleep 2
+puts "setting async"
 d.set_async(100)
+puts "doubling async"
 d.double_async
+puts "done doubling, asking for value"
 puts d.get_async.value
 
 sleep 2
