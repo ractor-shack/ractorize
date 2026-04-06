@@ -43,25 +43,25 @@ class RactorizedObject < Ractor
     end
 
     def wrap_method(method_name)
-      self::Wrapper.define_method :method_name do |*args|
-        return super if Ractor[:inside_wrapper]
-
-        return_port = Ractor::Port.new
-        self << [method_name, args, return_port]
-        return_port.receive
-      end
-
-      # s = <<~HERE
-      #   def #{method_name}(*args)
-      #     return super if Ractor[:inside_wrapper]
+      # self::Wrapper.define_method :method_name do |*args|
+      #   return super if Ractor[:inside_wrapper]
       #
-      #     return_port = Ractor::Port.new
-      #     self << [:#{method_name}, args, return_port]
-      #     return_port.receive
-      #   end
-      # HERE
+      #   return_port = Ractor::Port.new
+      #   self << [method_name, args, return_port]
+      #   return_port.receive
+      # end
 
-      # self::Wrapper.class_eval s
+      s = <<~HERE
+        def #{method_name}(*args)
+          return super if Ractor[:inside_wrapper]
+
+          return_port = Ractor::Port.new
+          self << [:#{method_name}, args, return_port]
+          return_port.receive
+        end
+      HERE
+
+      self::Wrapper.class_eval s
     end
 
     def wrap_method_async(method_name)
