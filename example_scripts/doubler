@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
 
+# require "pry"
+# require "pry-byebug"
+
 require_relative "../src/ractorized_object"
 
 class Doubler < RactorizedObject
@@ -20,5 +23,11 @@ d = Doubler.new
 d.set(10)
 d.double
 puts d.get
+
+# d = Doubler.new
+# binding.pry
+# d.set_async(100)
+# d.double_async
+# puts d.get_async.value
 
 sleep 2

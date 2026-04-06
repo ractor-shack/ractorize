@@ -1,12 +1,17 @@
 #!/usr/bin/env ruby
 
+# TODO: make use of autoload?
+require_relative "ractorized_object/promise"
+
 class RactorizedObject < Ractor
   class << self
     def new
+      unless const_defined?(:Wrapper)
+        wrap_methods
+      end
+
       super do
-        unless Ractor[:wrapper]
-          Ractor.current.class.wrap_methods
-        end
+        ractor = Ractor.current
 
         loop do
           method_name, *args, return_port = receive
@@ -18,7 +23,7 @@ class RactorizedObject < Ractor
           begin
             Ractor[:inside_wrapper] = true
 
-            value = Ractor.current.__send__(method_name, *args)
+            value = ractor.__send__(method_name, *args)
 
             return_port.send(value)
           ensure
@@ -33,31 +38,47 @@ class RactorizedObject < Ractor
 
       instance_methods(false).each do |method_name|
         wrap_method(method_name)
+        wrap_method_async(method_name)
       end
     end
 
     def wrap_method(method_name)
-      # define_method(method_name) do |*args|
-      #   return_port = Ractor::Port.new
-      #   send(method_name, *args, return_port)
-      #   return_port.receive
-      # end
-      s = <<~HERE
-        def #{method_name}(*args)
-          return super if Ractor[:inside_wrapper]
+      self::Wrapper.define_method :method_name do |*args|
+        return super if Ractor[:inside_wrapper]
 
+        return_port = Ractor::Port.new
+        self << [method_name, args, return_port]
+        return_port.receive
+      end
+
+      # s = <<~HERE
+      #   def #{method_name}(*args)
+      #     return super if Ractor[:inside_wrapper]
+      #
+      #     return_port = Ractor::Port.new
+      #     self << [:#{method_name}, args, return_port]
+      #     return_port.receive
+      #   end
+      # HERE
+
+      # self::Wrapper.class_eval s
+    end
+
+    def wrap_method_async(method_name)
+      s = <<~HERE
+        def #{method_name}_async(*args)
           return_port = Ractor::Port.new
           self << [:#{method_name}, args, return_port]
-          return_port.receive
+          Promise.new(return_port)
         end
       HERE
 
-      Ractor[:wrapper].class_eval s
+      self::Wrapper.class_eval s
     end
 
     def install_wrapper
-      Ractor[:wrapper] = Module.new
-      prepend Ractor[:wrapper]
+      const_set(:Wrapper, Module.new)
+      prepend self::Wrapper
     end
   end
 end
