@@ -6,13 +6,12 @@ require_relative "ractorized_object/promise"
 class RactorizedObject < Ractor
   class << self
     def new
+      unless const_defined?(:Wrapper)
+        wrap_methods
+      end
+
       super do
         ractor = Ractor.current
-        ractor_class = ractor.class
-
-        unless ractor_class.const_defined?(:Wrapper)
-          ractor_class.wrap_methods
-        end
 
         loop do
           method_name, *args, return_port = receive
