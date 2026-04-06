@@ -4,8 +4,18 @@
 require_relative "ractorized_object/promise"
 
 class Ractorized
-  def initialize(klass, *args)
-    @ractor = Ractor.new(klass, *args) do |klass, *args|
+  class << self
+    attr_accessor :target_class
+
+    def [](klass)
+      ractorized_class = Class.new(Ractorized)
+      ractorized_class.target_class = klass
+      ractorized_class
+    end
+  end
+
+  def initialize(*args)
+    @ractor = Ractor.new(self.class.target_class, *args) do |klass, *args|
       object = klass.new(*args)
 
       loop do

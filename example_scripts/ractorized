@@ -20,13 +20,16 @@ class Doubler
   end
 end
 
-d = Ractorized.new(Doubler)
+RactorizedDoubler = Ractorized[Doubler]
+
+d = RactorizedDoubler.new
 
 d.set(10)
 d.double
 puts d.get
 
-d = Ractorized.new(Doubler)
+d = RactorizedDoubler.new
+
 sleep 2
 puts "setting async"
 d.set_async(100)
