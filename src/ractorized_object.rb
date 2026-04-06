@@ -6,11 +6,12 @@ require_relative "ractorized_object/promise"
 class RactorizedObject < Ractor
   class << self
     def new
-      unless const_defined?(:Wrapper)
-        wrap_methods
-      end
+      require "pry"
+      binding.pry
 
       super do
+        # methods have to be wrapped in here?? why???
+        self.class.wrap_methods
         ractor = Ractor.current
 
         loop do
@@ -18,10 +19,9 @@ class RactorizedObject < Ractor
 
           break if method_name == :close
 
-          m = ractor.class.instance_method(method_name).super_method
-          puts "about to bind_call #{method_name} in #{Ractor.current}"
-          value = m.bind_call(ractor, *args)
-          puts "got #{value}"
+          puts "calling #{method_name}_sync"
+          puts self
+          value = Ractor.current.__send__("#{method_name}_sync", *args)
 
           return_port.send(value)
         end
@@ -29,16 +29,15 @@ class RactorizedObject < Ractor
     end
 
     def wrap_methods
-      install_wrapper
-
       instance_methods(false).each do |method_name|
+        alias_method "#{method_name}_sync", method_name
         wrap_method(method_name)
         wrap_method_async(method_name)
       end
     end
 
     def wrap_method(method_name)
-      s = <<~HERE
+      class_eval <<~HERE, __FILE__, __LINE__ + 1
         def #{method_name}(*args)
           puts "#{method_name} called!"
           return_port = Ractor::Port.new
@@ -46,33 +45,16 @@ class RactorizedObject < Ractor
           return_port.receive
         end
       HERE
-
-      self::Wrapper.class_eval s
     end
 
     def wrap_method_async(method_name)
-      self::Wrapper.define_method :"#{method_name}_async" do |*args|
-        puts "creating port in #{Ractor.current}"
-        return_port = Ractor::Port.new
-        self << [method_name, args, return_port]
-        # return_port
-        "wtf"
-      end
-
-      # s = <<~HERE
-      #   def #{method_name}_async(*args)
-      #     return_port = Ractor::Port.new
-      #     self << [:#{method_name}, args, return_port]
-      #     Promise.new(return_port)
-      #   end
-      # HERE
-      #
-      # self::Wrapper.class_eval s
-    end
-
-    def install_wrapper
-      const_set(:Wrapper, Module.new)
-      prepend self::Wrapper
+      class_eval <<~HERE, __FILE__, __LINE__ + 1
+        def #{method_name}_async(*args)
+          return_port = Ractor::Port.new
+          self << [:#{method_name}, args, return_port]
+          Promise.new(return_port)
+        end
+      HERE
     end
   end
 end
