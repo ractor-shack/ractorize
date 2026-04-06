@@ -1,0 +1,38 @@
+#!/usr/bin/env ruby
+
+# require "pry"
+# require "pry-byebug"
+
+require_relative "../src/ractorized"
+
+class Doubler
+  def set(i)
+    puts "in lowest #set"
+    @i = i
+  end
+
+  def get
+    @i
+  end
+
+  def double
+    @i *= 2
+  end
+end
+
+d = Ractorized.new(Doubler)
+
+d.set(10)
+d.double
+puts d.get
+
+d = Ractorized.new(Doubler)
+sleep 2
+puts "setting async"
+d.set_async(100)
+puts "doubling async"
+d.double_async
+puts "done doubling, asking for value"
+puts d.get_async.receive
+
+sleep 2
