@@ -1,8 +1,5 @@
 #!/usr/bin/env ruby
 
-require "pry"
-require "pry-byebug"
-
 class RactorizedObject < Ractor
   class << self
     def new
@@ -64,24 +61,3 @@ class RactorizedObject < Ractor
     end
   end
 end
-
-class Doubler < RactorizedObject
-  def set(i)
-    @i = i
-  end
-
-  def get
-    @i
-  end
-
-  def double
-    @i *= 2
-  end
-end
-
-d = Doubler.new
-d.set(10)
-d.double
-puts d.get
-
-sleep 2
