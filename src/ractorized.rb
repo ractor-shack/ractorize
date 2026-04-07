@@ -23,9 +23,6 @@ class Ractorized
 
         break if method_name == :close
 
-        puts method_name.inspect
-        puts method_args.inspect
-
         value = object.__send__(method_name, *method_args)
 
         return_port.send(value)

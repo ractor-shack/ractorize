@@ -1,0 +1,40 @@
+#!/usr/bin/env ruby
+
+# require "pry"
+# require "pry-byebug"
+
+require "benchmark"
+require "bigdecimal"
+
+require_relative "../src/ractorized"
+
+srand(0)
+
+CONCURRENCY = 3
+# Is this basically Math::E or related?? And just off a bit due to randomness?
+RANDOM_NUMBER_UPPER_BOUND = 2.78
+RANDOM_NUMBERS = 10_000.times.map { BigDecimal(rand * RANDOM_NUMBER_UPPER_BOUND) }
+
+# You must implement #<<, #get, #join, #value, and a .new/#initialize that allows no arguments
+
+class Productizer
+  attr_accessor :product
+
+  def initialize
+    self.product = 1
+  end
+
+  def multiply(i)
+    self.product *= i
+  end
+end
+
+RactorizedProductizer = Ractorized[Productizer]
+
+productizers = CONCURRENCY.times.map { RactorizedProductizer.new }
+
+RANDOM_NUMBERS.each.with_index do |number, index|
+  productizers[index % CONCURRENCY].multiply_async(number)
+end
+
+puts productizers.map(&:product).inject(:*)
