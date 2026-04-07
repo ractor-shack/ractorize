@@ -1,0 +1,182 @@
+#!/usr/bin/env ruby
+
+require "benchmark"
+require "bigdecimal"
+
+# require "pry"
+# require "pry-byebug"
+
+require_relative "../src/ractorize"
+
+srand(0)
+
+CONCURRENCY = 3
+# Is this basically Math::E or related?? And just off a bit due to randomness?
+RANDOM_NUMBER_UPPER_BOUND = 2.78
+RANDOM_NUMBERS = 25_000.times.map { BigDecimal(rand * RANDOM_NUMBER_UPPER_BOUND) }.freeze
+
+# You must implement #<<, #get, #join, #value, and a .new/#initialize that allows no arguments
+
+module Benchmarkable
+  class << self
+    def included(base)
+      base.extend ClassMethods
+    end
+  end
+
+  module ClassMethods
+    def benchmark(silent: false)
+      answer = nil
+
+      unless silent
+        puts "benchmarking #{name}"
+      end
+
+      GC.start
+      GC.compact
+
+      GC.disable
+
+      elapsed_time = Benchmark.measure do
+        answer = run
+      end.real
+
+      unless silent
+        puts "answer: #{answer.to_s[0...10]}...#{answer.to_s[-10...-1]}"
+        puts "%.4f seconds" % elapsed_time
+        puts
+      end
+
+      elapsed_time
+    ensure
+      GC.enable
+    end
+
+    private
+
+    def run
+      productizers = CONCURRENCY.times.map { new }
+
+      RANDOM_NUMBERS.each.with_index do |number, index|
+        productizers[index % CONCURRENCY] << number
+      rescue => e
+        binding.pry
+        raise
+      end
+
+      productizers.each { |productizer| productizer << :stop }
+
+      productizers.each(&:join).map(&:value).inject(:*)
+    end
+  end
+
+  def do_it
+    product = 1
+
+    loop do
+      number = get
+
+      break if number == :stop
+
+      product *= number
+    end
+
+    product
+  end
+end
+
+class DirectProductizer
+  include Benchmarkable
+
+  attr_accessor :value, :queue
+
+  def initialize
+    self.queue = Queue.new
+  end
+
+  def get = queue.pop
+  def <<(...) = queue.<<(...)
+  def join = self.value = do_it
+end
+
+class RactorProductizer < Ractor
+  class << self
+    def new(...)
+      super { do_it }
+    end
+  end
+
+  include Benchmarkable
+
+  def get = receive
+end
+
+class Productizer
+  include Benchmarkable
+
+  attr_accessor :product
+
+  def initialize
+    self.product = 1
+  end
+
+  def value = product
+  def join = value
+
+  def <<(i)
+    unless i == :stop
+      self.product *= i
+    end
+  end
+end
+
+RactorizedProductizer = Ractorize[Productizer]
+RactorizedProductizer.include Benchmarkable
+
+class ThreadProductizer < Thread
+  class << self
+    def new(...)
+      super { Thread.current.do_it }
+    end
+  end
+
+  include Benchmarkable
+
+  attr_accessor :queue
+
+  def initialize(...)
+    self.queue = Queue.new
+
+    super
+  end
+
+  def get = queue.pop
+  def <<(...) = queue.<<(...)
+end
+
+productizers = [
+  Productizer,
+  RactorizedProductizer,
+  DirectProductizer,
+  RactorProductizer,
+  ThreadProductizer
+]
+
+puts "warming up..."
+
+[
+  *productizers,
+  *productizers.reverse
+].each { |productizer| productizer.benchmark(silent: true) }
+
+puts "ok here we go..."
+
+productizers.each(&:benchmark)
+
+# DirectProductizer.benchmark
+# ractor_elapsed_time = RactorProductizer.benchmark
+# thread_elapsed_time = ThreadProductizer.benchmark
+#
+# ractors_speedup = 1 - (ractor_elapsed_time / thread_elapsed_time)
+#
+# puts "Ractors speedup: %d%%" % (100 * ractors_speedup).round

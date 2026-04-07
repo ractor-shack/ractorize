@@ -5,15 +5,16 @@
 
 require "benchmark"
 require "bigdecimal"
+require "digest/md5"
 
-require_relative "../src/ractorized"
+require_relative "../src/ractorize"
 
 srand(0)
 
 CONCURRENCY = 3
 # Is this basically Math::E or related?? And just off a bit due to randomness?
 RANDOM_NUMBER_UPPER_BOUND = 2.78
-RANDOM_NUMBERS = 10_000.times.map { BigDecimal(rand * RANDOM_NUMBER_UPPER_BOUND) }
+RANDOM_NUMBERS = 50_000.times.map { BigDecimal(rand * RANDOM_NUMBER_UPPER_BOUND) }
 
 # You must implement #<<, #get, #join, #value, and a .new/#initialize that allows no arguments
 
@@ -29,12 +30,14 @@ class Productizer
   end
 end
 
-RactorizedProductizer = Ractorized[Productizer]
+RactorizedProductizer = Ractorize[Productizer]
 
-productizers = CONCURRENCY.times.map { RactorizedProductizer.new }
+productizer_class = Productizer
+# productizer_class = RactorizedProductizer
+productizers = CONCURRENCY.times.map { productizer_class.new }
 
 RANDOM_NUMBERS.each.with_index do |number, index|
   productizers[index % CONCURRENCY].multiply(number)
 end
 
-puts productizers.map(&:product).map(&:value).inject(:*)
+puts Digest::MD5.hexdigest(productizers.map(&:product).inject(:*).to_s)

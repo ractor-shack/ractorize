@@ -2,43 +2,81 @@
 
 # TODO: make use of autoload?
 require_relative "ractorize/proxy_promise"
+require_relative "ractorized_class"
 
 class Ractorize
   class << self
-    def ractorize(object)
+    def ractorize_object(object)
       new(object)
     end
+
+    def ractorize_class(klass)
+      RactorizedClass[klass]
+    end
+
+    def [](object)
+      if object.is_a?(Class)
+        ractorize_class(object)
+      else
+        ractorize_object(object)
+      end
+    end
   end
+
+  attr_accessor :__object__
 
   def initialize(o)
     puts "o.object_id"
     puts o.object_id
 
     @ractor = Ractor.new do
+      ractor = Ractor.current
       object = receive
 
       puts "object.object_id"
       puts object.object_id
 
       loop do
-        method_name, *method_args, return_port = receive
+        method_name, method_args, opts, return_port = receive
 
-        break if method_name == :close
+        case method_name
+        when :close
+          return_port.send(object, move: true)
+          ractor.close
+          break
+        else
+          # puts "calling #{method_name} on #{object.class}"
+          value = object.__send__(method_name, *method_args, **opts)
 
-        value = object.__send__(method_name, *method_args)
-
-        return_port.send(value)
+          return_port.send(value)
+        end
       end
     end
 
     @ractor.send(o, move: true)
   end
 
-  def method_missing(method_name, *args)
-    return_port = Ractor::Port.new
+  def close
+    join
+  end
 
-    @ractor << [method_name, *args, return_port]
+  def join
+    returned_object = Ractor::Port.new
+    @ractor.send([:close, [], {}, returned_object])
+    self.__object__ = returned_object.receive
+    @ractor.join
+    self
+  end
 
-    Ractorize::ProxyPromise.new(return_port)
+  def method_missing(method_name, *args, **opts)
+    if @ractor.default_port.closed?
+      __object__.__send__(method_name, *args, **opts)
+    else
+      return_port = Ractor::Port.new
+
+      @ractor << [method_name, args, opts, return_port]
+
+      Ractorize::ProxyPromise.new(return_port)
+    end
   end
 end

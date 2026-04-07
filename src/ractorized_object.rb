@@ -9,9 +9,6 @@ class RactorizedObject < Ractor
       wrap_methods
 
       super do
-        # methods have to be wrapped in here?? why???
-        ractor = Ractor.current
-
         loop do
           method_name, *args, return_port = receive
 
@@ -37,7 +34,7 @@ class RactorizedObject < Ractor
     def wrap_method(method_name)
       class_eval <<~HERE, __FILE__, __LINE__ + 1
         def #{method_name}(*args)
-          puts "#{method_name} called!"
+          # puts "#{method_name} called!"
           return_port = Ractor::Port.new
           self << [:#{method_name}, args, return_port]
           return_port.receive
@@ -48,6 +45,7 @@ class RactorizedObject < Ractor
     def wrap_method_async(method_name)
       class_eval <<~HERE, __FILE__, __LINE__ + 1
         def #{method_name}_async(*args)
+          # puts "async call to #{method_name}"
           return_port = Ractor::Port.new
           self << [:#{method_name}, args, return_port]
           Promise.new(return_port)
