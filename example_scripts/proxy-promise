@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+
+# require "pry"
+# require "pry-byebug"
+
+require_relative "../src/ractorize/proxy_promise"
+
+port = Ractor::Port.new
+p = ProxyPromise.new(port)
+port.send(10)
+
+puts p + 10
+puts 10 + p
