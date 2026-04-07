@@ -27,7 +27,7 @@ d = Ractorize.ractorize(doubler)
 
 d.set(10)
 d.double
-puts d.get.value
+puts d.get
 
 sleep 5
 
@@ -40,6 +40,6 @@ sleep 2
 d.set(100)
 d.double
 puts "done doubling, asking for value"
-puts d.get.value
+puts d.get
 
 sleep 2

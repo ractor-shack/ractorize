@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 # TODO: make use of autoload?
-require_relative "ractorized_object/promise"
+require_relative "ractorize/proxy_promise"
 
 class Ractorize
   class << self
@@ -39,6 +39,6 @@ class Ractorize
 
     @ractor << [method_name, *args, return_port]
 
-    RactorizedObject::Promise.new(return_port)
+    Ractorize::ProxyPromise.new(return_port)
   end
 end
