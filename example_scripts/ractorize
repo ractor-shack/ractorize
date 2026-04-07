@@ -1,0 +1,45 @@
+#!/usr/bin/env ruby
+
+# require "pry"
+# require "pry-byebug"
+
+require_relative "../src/ractorize"
+
+class Doubler
+  def set(i)
+    puts "in lowest #set"
+    @i = i
+  end
+
+  def get
+    @i
+  end
+
+  def double
+    @i *= 2
+  end
+end
+
+doubler = Doubler.new
+puts "doubler.object_id"
+puts doubler.object_id
+d = Ractorize.ractorize(doubler)
+
+d.set(10)
+d.double
+puts d.get.value
+
+sleep 5
+
+doubler = Doubler.new
+puts "doubler.object_id"
+puts doubler.object_id
+d = Ractorize.ractorize(doubler)
+
+sleep 2
+d.set(100)
+d.double
+puts "done doubling, asking for value"
+puts d.get.value
+
+sleep 2
