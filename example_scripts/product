@@ -34,7 +34,7 @@ RactorizedProductizer = Ractorized[Productizer]
 productizers = CONCURRENCY.times.map { RactorizedProductizer.new }
 
 RANDOM_NUMBERS.each.with_index do |number, index|
-  productizers[index % CONCURRENCY].multiply_async(number)
+  productizers[index % CONCURRENCY].multiply(number)
 end
 
-puts productizers.map(&:product).inject(:*)
+puts productizers.map(&:product).map(&:value).inject(:*)
