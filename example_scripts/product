@@ -25,8 +25,8 @@ class Productizer
     self.product = 1
   end
 
-  def multiply(i)
-    self.product *= i
+  def multiply(integer)
+    self.product *= integer
   end
 end
 

@@ -59,9 +59,6 @@ module Benchmarkable
 
       RANDOM_NUMBERS.each.with_index do |number, index|
         productizers[index % CONCURRENCY] << number
-      rescue => e
-        binding.pry
-        raise
       end
 
       productizers.each { |productizer| productizer << :stop }
@@ -123,9 +120,9 @@ class Productizer
   def value = product
   def join = value
 
-  def <<(i)
-    unless i == :stop
-      self.product *= i
+  def <<(integer)
+    unless integer == :stop
+      self.product *= integer
     end
   end
 end

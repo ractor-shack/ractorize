@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 # TODO: make use of autoload?
 require_relative "ractorized_object/promise"
 

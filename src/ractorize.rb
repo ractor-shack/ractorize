@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 # TODO: make use of autoload?
 require_relative "ractorize/proxy_promise"
 require_relative "ractorized_class"
@@ -25,16 +23,10 @@ class Ractorize
 
   attr_accessor :__object__
 
-  def initialize(o)
-    puts "o.object_id"
-    puts o.object_id
-
+  def initialize(outside_object)
     @ractor = Ractor.new do
       ractor = Ractor.current
       object = receive
-
-      puts "object.object_id"
-      puts object.object_id
 
       loop do
         method_name, method_args, opts, return_port = receive
@@ -53,7 +45,7 @@ class Ractorize
       end
     end
 
-    @ractor.send(o, move: true)
+    @ractor.send(outside_object, move: true)
   end
 
   def close

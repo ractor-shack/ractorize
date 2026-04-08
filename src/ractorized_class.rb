@@ -1,5 +1,3 @@
-#!/usr/bin/env ruby
-
 class RactorizedClass
   class << self
     attr_accessor :target_class

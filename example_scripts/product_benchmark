@@ -32,8 +32,8 @@ class Productizer
     random_numbers.each { multiply it }
   end
 
-  def multiply(i)
-    self.product *= i
+  def multiply(integer)
+    self.product *= integer
   end
 end
 
@@ -46,7 +46,7 @@ def do_it(productizer_class)
   end
 
   product = productizers.map(&:product).inject(:*)
-  # puts product
+  puts Digest::MD5.hexdigest(product.to_s)
 end
 
 puts Benchmark.measure { do_it(Productizer) }

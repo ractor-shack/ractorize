@@ -1,11 +1,9 @@
-#!/usr/bin/env ruby
-
 class Ractorize
   class ProxyPromise < BasicObject
     attr_accessor :__target__, :__resolved__, :__value__
 
-    def initialize(__target__)
-      self.__target__ = __target__
+    def initialize(target)
+      self.__target__ = target
     end
 
     def method_missing(method_name, *)

@@ -6,9 +6,8 @@
 require_relative "../src/ractorized"
 
 class Doubler
-  def set(i)
-    puts "in lowest #set"
-    @i = i
+  def set(integer)
+    @i = integer
   end
 
   def get
