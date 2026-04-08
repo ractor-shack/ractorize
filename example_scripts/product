@@ -32,8 +32,8 @@ end
 
 RactorizedProductizer = Ractorize[Productizer]
 
-productizer_class = Productizer
-# productizer_class = RactorizedProductizer
+# productizer_class = Productizer
+productizer_class = RactorizedProductizer
 productizers = CONCURRENCY.times.map { productizer_class.new }
 
 RANDOM_NUMBERS.each.with_index do |number, index|
