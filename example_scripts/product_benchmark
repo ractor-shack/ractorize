@@ -5,6 +5,7 @@
 
 require "benchmark"
 require "bigdecimal"
+require "digest/md5"
 
 require_relative "../src/ractorize"
 

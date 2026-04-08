@@ -22,7 +22,7 @@ end
 doubler = Doubler.new
 puts "doubler.object_id"
 puts doubler.object_id
-d = Ractorize.ractorize(doubler)
+d = Ractorize[doubler]
 
 d.set(10)
 d.double
@@ -33,7 +33,7 @@ sleep 5
 doubler = Doubler.new
 puts "doubler.object_id"
 puts doubler.object_id
-d = Ractorize.ractorize(doubler)
+d = Ractorize[doubler]
 
 sleep 2
 d.set(100)
