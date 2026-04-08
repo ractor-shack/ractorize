@@ -25,7 +25,7 @@ class Productizer
   end
 
   def generate_random_numbers
-    self.random_numbers = 10_000.times.map { BigDecimal(rand * RANDOM_NUMBER_UPPER_BOUND) }
+    self.random_numbers = 1_000.times.map { BigDecimal(rand * RANDOM_NUMBER_UPPER_BOUND) }
   end
 
   def multiply_them_all
