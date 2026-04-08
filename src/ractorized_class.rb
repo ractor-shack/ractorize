@@ -17,5 +17,9 @@ class RactorizedClass
     def method_missing(method_name, ...)
       target_class.__send__(method_name, ...)
     end
+
+    def respond_to_missing?(method_name, include_all = false)
+      target_class.respond_to?(method_name, include_all)
+    end
   end
 end

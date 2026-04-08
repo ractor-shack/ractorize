@@ -71,4 +71,8 @@ class Ractorize
       Ractorize::ProxyPromise.new(return_port)
     end
   end
+
+  def respond_to_missing?(method_name, include_all = false)
+    __object__.respond_to?(method_name, include_all)
+  end
 end

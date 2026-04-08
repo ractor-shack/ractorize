@@ -35,4 +35,8 @@ class Ractorized
 
     RactorizedObject::Promise.new(return_port)
   end
+
+  def respond_to_missing?(method_name, include_all = false)
+    method_missing(:respond_to_missing?, method_name, include_all)
+  end
 end

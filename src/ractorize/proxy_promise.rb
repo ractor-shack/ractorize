@@ -14,5 +14,14 @@ class Ractorize
 
       __value__.send(method_name, *)
     end
+
+    def respond_to_missing?(method_name, include_all = false)
+      unless __resolved__
+        self.__value__ = __target__.receive
+        self.__resolved__ = true
+      end
+
+      __value__.respond_to?(method_name, include_all)
+    end
   end
 end
