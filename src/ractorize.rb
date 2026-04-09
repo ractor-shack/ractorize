@@ -48,20 +48,18 @@ class Ractorize
   end
 
   def close
-    join
+    @__object__ = method_missing(:close).__value__
   end
 
   def join
-    returned_object = Ractor::Port.new
-    @ractor.send([:close, [], {}, returned_object])
-    self.__object__ = returned_object.receive
+    close
     @ractor.join
     self
   end
 
   def method_missing(method_name, *args, **opts)
-    if @ractor.default_port.closed?
-      __object__.__send__(method_name, *args, **opts)
+    if defined?(@__object__)
+      @__object__.__send__(method_name, *args, **opts)
     else
       return_port = Ractor::Port.new
 
@@ -72,6 +70,6 @@ class Ractorize
   end
 
   def respond_to_missing?(method_name, include_all = false)
-    __object__.respond_to?(method_name, include_all)
+    method_missing?(:respond_to?, method_name, include_all)
   end
 end
