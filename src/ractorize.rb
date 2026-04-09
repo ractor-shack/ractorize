@@ -37,7 +37,6 @@ class Ractorize
           ractor.close
           break
         else
-          # puts "calling #{method_name} on #{object.class}"
           value = object.__send__(method_name, *method_args, **opts)
 
           return_port.send(value)

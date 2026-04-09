@@ -31,6 +31,7 @@ RSpec.describe Ractorize do
         expect(proxy).to be_truthy
         expect(!proxy).to be_falsey
         expect(proxy * proxy).to eq(25)
+        ractorized_doubler.join
       end
     end
 
