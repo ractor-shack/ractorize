@@ -1,56 +1,50 @@
-#!/usr/bin/env ruby
+require_relative "ractorize/proxy_promise"
 
-# TODO: make use of autoload?
-require_relative "ractorized_object/promise"
-
-class RactorizedObject < Ractor
+module RactorizedObject
   class << self
-    def new
-      wrap_methods
+    def [](object, methods_to_ractorize = nil)
+      if methods_to_ractorize.nil?
+        methods_to_ractorize = object.methods
+      end
 
-      super do
+      ractor = Ractor.new do
+        target = receive
+
         loop do
-          method_name, *args, return_port = receive
+          method_name, method_args, opts, return_port = receive
 
-          break if method_name == :close
+          case method_name
+          when :close
+            return_port.send(target, move: true)
+            Ractor.current.close
+            break
+          else
+            value = target.__send__(method_name, *method_args, **opts)
 
-          puts "calling #{method_name}_sync"
-          puts self
-          value = Ractor.current.__send__("#{method_name}_sync", *args)
-
-          return_port.send(value)
+            return_port.send(value)
+          end
         end
       end
-    end
 
-    def wrap_methods
-      instance_methods(false).each do |method_name|
-        alias_method "#{method_name}_sync", method_name
-        wrap_method(method_name)
-        wrap_method_async(method_name)
+      mod = Module.new
+
+      methods_to_ractorize.each do |method_name|
+        mod.define_method(method_name) do |*args, **opts|
+          if Ractor.current == ractor
+            super
+          else
+            return_port = Ractor::Port.new
+            ractor.send([method_name, args, opts, return_port])
+            Ractorize::ProxyPromise.new(return_port)
+          end
+        end
       end
-    end
 
-    def wrap_method(method_name)
-      class_eval <<~HERE, __FILE__, __LINE__ + 1
-        def #{method_name}(*args)
-          # puts "#{method_name} called!"
-          return_port = Ractor::Port.new
-          self << [:#{method_name}, args, return_port]
-          return_port.receive
-        end
-      HERE
-    end
+      object.extend(mod)
 
-    def wrap_method_async(method_name)
-      class_eval <<~HERE, __FILE__, __LINE__ + 1
-        def #{method_name}_async(*args)
-          # puts "async call to #{method_name}"
-          return_port = Ractor::Port.new
-          self << [:#{method_name}, args, return_port]
-          Promise.new(return_port)
-        end
-      HERE
+      ractor.send(object, move: true)
+
+      object
     end
   end
 end

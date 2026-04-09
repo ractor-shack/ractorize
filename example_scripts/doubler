@@ -5,7 +5,7 @@
 
 require_relative "../src/ractorized_object"
 
-class Doubler < RactorizedObject
+class Doubler
   def set(i)
     puts "in lowest #set"
     @i = i
@@ -21,6 +21,7 @@ class Doubler < RactorizedObject
 end
 
 d = Doubler.new
+RactorizedObject[d]
 d.set(10)
 d.double
 puts d.get
