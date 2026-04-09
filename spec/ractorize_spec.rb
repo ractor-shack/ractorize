@@ -2,6 +2,10 @@ RSpec.describe Ractorize do
   describe ".[]" do
     let(:doubler_class) do
       stub_class("Doubler") do
+        class << self
+          attr_accessor :some_singleton_method
+        end
+
         def set(integer) = @i = integer
         def get = @i
         def double = @i *= 2
@@ -20,6 +24,14 @@ RSpec.describe Ractorize do
         expect(ractorized_doubler.get).to eq(10)
         ractorized_doubler.join
       end
+
+      it "results in proxies that can be used with its normal interface" do
+        ractorized_doubler.set(5)
+        proxy = ractorized_doubler.get
+        expect(proxy).to be_truthy
+        expect(!proxy).to be_falsey
+        expect(proxy * proxy).to eq(25)
+      end
     end
 
     context "when ractorizing a class" do
@@ -32,6 +44,14 @@ RSpec.describe Ractorize do
         ractorized_doubler.double
         expect(ractorized_doubler.get).to eq(10)
         ractorized_doubler.join
+      end
+
+      context "when using singleton methods" do
+        it "works with the same interface as the ractorized class" do
+          expect(ractorized_doubler_class).to respond_to(:some_singleton_method)
+          ractorized_doubler_class.some_singleton_method = 10
+          expect(ractorized_doubler_class.some_singleton_method).to eq(10)
+        end
       end
     end
   end
