@@ -2,8 +2,7 @@
 require_relative "ractorize/proxy_promise"
 require_relative "ractorized_class"
 
-# TODO: should inherit from BasicObject
-class Ractorize # < BasicObject
+class Ractorize < BasicObject
   class << self
     def ractorize_object(object)
       new(object)
@@ -25,8 +24,7 @@ class Ractorize # < BasicObject
   attr_accessor :__object__
 
   def initialize(outside_object)
-    @ractor = Ractor.new do
-      ractor = Ractor.current
+    @ractor = ::Ractor.new do
       object = receive
 
       loop do
@@ -35,7 +33,7 @@ class Ractorize # < BasicObject
         case method_name
         when :close
           return_port.<<(object, move: true)
-          ractor.close
+          close
           break
         else
           value = object.__send__(method_name, *method_args, **opts)
@@ -72,18 +70,18 @@ class Ractorize # < BasicObject
     if defined?(@__object__)
       @__object__.__send__(method_name, *args, **opts)
     else
-      return_port = Ractor::Port.new
+      return_port = ::Ractor::Port.new
 
       @ractor << [method_name, args, opts, return_port]
 
-      Ractorize::ProxyPromise.new(return_port)
+      ProxyPromise.new(return_port)
     end
   end
 
-  def respond_to_missing?(method_name, include_all = false)
+  def respond_to?(method_name, include_all = false)
     value = method_missing(:respond_to?, method_name, include_all)
 
-    if Ractorize::ProxyPromise === value
+    if ::Ractorize::ProxyPromise === value
       value.__value__
     else
       value

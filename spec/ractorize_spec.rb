@@ -23,10 +23,10 @@ RSpec.describe Ractorize do
         ractorized_doubler.double
         expect(ractorized_doubler.get).to eq(10)
         expect(ractorized_doubler.respond_to?(:set) == true).to be true
-        expect(ractorized_doubler.respond_to?(:asdf) == true).to eq false
+        expect(ractorized_doubler.respond_to?(:asdf) == true).to be false
         ractorized_doubler.join
         expect(ractorized_doubler.respond_to?(:set) == true).to be true
-        expect(ractorized_doubler.respond_to?(:asdf) == true).to eq false
+        expect(ractorized_doubler.respond_to?(:asdf) == true).to be false
       end
 
       it "results in proxies that can be used with its normal interface" do

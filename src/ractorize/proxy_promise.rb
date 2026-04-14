@@ -1,4 +1,4 @@
-class Ractorize
+class Ractorize < BasicObject
   class ProxyPromise < BasicObject
     attr_accessor :__return_value_port__
 
