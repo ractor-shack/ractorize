@@ -1,5 +1,5 @@
 module Ractorize
-  class ProxyPromise < BasicObject
+  class Thunk < BasicObject
     attr_accessor :__return_value_port__
 
     def initialize(return_value_port)

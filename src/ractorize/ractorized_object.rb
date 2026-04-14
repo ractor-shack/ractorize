@@ -1,5 +1,5 @@
 # TODO: make use of autoload?
-require_relative "ractorize/proxy_promise"
+require_relative "thunk"
 require_relative "ractorized_class"
 
 module Ractorize
@@ -57,7 +57,7 @@ module Ractorize
     def close
       result = method_missing(:close)
 
-      @__object__ = if ProxyPromise === result
+      @__object__ = if Thunk === result
                       result.__value__
                     else
                       result
@@ -80,7 +80,7 @@ module Ractorize
 
         @ractor << [method_name, args, opts, return_port]
 
-        ProxyPromise.new(return_port)
+        Thunk.new(return_port)
       end
     end
 
@@ -96,7 +96,7 @@ module Ractorize
     def respond_to_missing?(method_name, include_all = false)
       value = method_missing(:respond_to?, method_name, include_all)
 
-      if ::Ractorize::ProxyPromise === value
+      if ::Ractorize::Thunk === value
         value.__value__
       else
         value
