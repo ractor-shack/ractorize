@@ -20,25 +20,15 @@ class Doubler
 end
 
 doubler = Doubler.new
-puts "doubler.object_id"
-puts doubler.object_id
 d = Ractorize[doubler]
 
 d.set(10)
 d.double
 puts d.get
 
-sleep 5
-
 doubler = Doubler.new
-puts "doubler.object_id"
-puts doubler.object_id
 d = Ractorize[doubler]
 
-sleep 2
 d.set(100)
 d.double
-puts "done doubling, asking for value"
 puts d.get
-
-sleep 2
