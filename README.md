@@ -1,6 +1,6 @@
 # Ractorize
 
-Have an object you wish was a ractor but isn't? Well, this gem lets you ractorize it!
+Have an object you wish were a ractor but isn't? Well, this gem lets you ractorize it!
 
 When you ractorize an object, you can just call the normal methods on the object as if it weren't a ractor.
 These method calls will automatically be sent as messages to a different ractor where that
@@ -50,12 +50,12 @@ also ractorize individual objects with `Ractorize[some_object]`.
 Notice how, whether it's ractorized or not, we can just use the same exact interface? Fun!
 
 You can find a script that benchmarks these the ractorized versus non-ractorized
-approach in `example_scripts/product-benchmark2`.
+approach in `example_scripts/product-benchmark`.
 
-Here's an example run of the product-benchmark2 script:
+Here's an example run of the product-benchmark script:
 
 ```
-$ example_scripts/product-benchmark2
+$ example_scripts/product-benchmark
 benchmarking non-ractorized productizer
 product is 0.568147e51
 took 2.303 seconds
