@@ -1,11 +1,6 @@
-# 
+# RactorShack::Ractorize
 
-TODO: Delete this and the text below, and describe your gem
-
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library
-into a gem. Put your Ruby code in the file `lib/foobara/empty_ruby_project_generator`. To experiment with that code,
-run `bin/console` for an interactive prompt.
-
+Provides a way to use normal object method calls as interfaces to ractors.
 
 ## Installation
 
@@ -18,9 +13,6 @@ TODO: Write usage instructions here
 
 ```ruby
 #!/usr/bin/env ruby
-
-require "foobara/load_dotenv"
-Foobara::LoadDotenv.run!(dir: __dir__)
 
 TODO: some example code
 ```

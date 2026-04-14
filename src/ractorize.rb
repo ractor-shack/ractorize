@@ -2,7 +2,8 @@
 require_relative "ractorize/proxy_promise"
 require_relative "ractorized_class"
 
-class Ractorize
+# TODO: should inherit from BasicObject
+class Ractorize # < BasicObject
   class << self
     def ractorize_object(object)
       new(object)
@@ -33,22 +34,30 @@ class Ractorize
 
         case method_name
         when :close
-          return_port.send(object, move: true)
+          return_port.<<(object, move: true)
           ractor.close
           break
         else
           value = object.__send__(method_name, *method_args, **opts)
 
-          return_port.send(value)
+          return_port << value
         end
       end
     end
 
-    @ractor.send(outside_object, move: true)
+    # It doesn't seem like we have a way to move the object into the ractor via its constructor so do
+    # it with #<< instead.
+    @ractor.<<(outside_object, move: true)
   end
 
   def close
-    @__object__ = method_missing(:close).__value__
+    result = method_missing(:close)
+
+    @__object__ = if ProxyPromise === result
+                    result.__value__
+                  else
+                    result
+                  end
   end
 
   def join
@@ -58,6 +67,8 @@ class Ractorize
   end
 
   def method_missing(method_name, *args, **opts)
+    return @__object__ if method_name == :close && @ractor.default_port.closed?
+
     if defined?(@__object__)
       @__object__.__send__(method_name, *args, **opts)
     else
@@ -70,6 +81,12 @@ class Ractorize
   end
 
   def respond_to_missing?(method_name, include_all = false)
-    method_missing?(:respond_to?, method_name, include_all)
+    value = method_missing(:respond_to?, method_name, include_all)
+
+    if Ractorize::ProxyPromise === value
+      value.__value__
+    else
+      value
+    end
   end
 end

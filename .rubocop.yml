@@ -16,3 +16,6 @@ Lint/ConstantDefinitionInBlock:
 
 Style/OneClassPerFile:
   Enabled: false
+
+Style/CommentedKeyword:
+  Enabled: false

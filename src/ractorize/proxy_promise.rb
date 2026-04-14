@@ -1,9 +1,9 @@
 class Ractorize
   class ProxyPromise < BasicObject
-    attr_accessor :__target__
+    attr_accessor :__return_value_port__
 
-    def initialize(target)
-      self.__target__ = target
+    def initialize(return_value_port)
+      self.__return_value_port__ = return_value_port
     end
 
     def method_missing(method_name, *)
@@ -17,7 +17,7 @@ class Ractorize
     def __value__
       return @__value__ if defined?(@__value__)
 
-      @__value__ = __target__.receive
+      @__value__ = __return_value_port__.receive
     end
 
     def !
