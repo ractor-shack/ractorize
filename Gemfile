@@ -1,7 +1,7 @@
 require_relative "version"
 
 source "https://rubygems.org"
-ruby RactorShack::Ractorize::MINIMUM_RUBY_VERSION
+ruby Ractorize::MINIMUM_RUBY_VERSION
 
 gemspec
 
@@ -15,6 +15,7 @@ group :development do
 end
 
 group :development, :test do
+  gem "bigdecimal"
   gem "pry"
   gem "pry-byebug"
   # TODO: Just adding this to suppress warnings seemingly coming from pry-byebug. Can probably remove this once

@@ -1,15 +1,15 @@
 require_relative "version"
 
 Gem::Specification.new do |spec|
-  spec.name = "ractor-shack-ractorize"
-  spec.version = RactorShack::Ractorize::VERSION
+  spec.name = "ractorize"
+  spec.version = Ractorize::VERSION
   spec.authors = ["Miles Georgi"]
   spec.email = ["azimux@gmail.com"]
 
   spec.summary = "Turn objects into ractors with ease!"
   spec.homepage = "https://github.com/ractor-shack/ractorize"
   spec.license = "MPL-2.0"
-  spec.required_ruby_version = RactorShack::Ractorize::MINIMUM_RUBY_VERSION
+  spec.required_ruby_version = Ractorize::MINIMUM_RUBY_VERSION
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = spec.homepage

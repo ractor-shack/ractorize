@@ -1,11 +1,11 @@
-# RactorShack::Ractorize
+# Ractorize
 
 Provides a way to use normal object method calls as interfaces to ractors.
 
 ## Installation
 
-Typical stuff: add `gem "ractor-shack-ractorize"` to your Gemfile or .gemspec file. Or even just
-`gem install ractor-shack-ractorize` if just playing with it directly in scripts.
+Typical stuff: add `gem "ractorize"` to your Gemfile or .gemspec file. Or even just
+`gem install ractorize` if just playing with it directly in scripts.
 
 ## Usage
 
