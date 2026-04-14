@@ -3,9 +3,8 @@
 # require "pry"
 # require "pry-byebug"
 
+require "benchmark"
 require "bigdecimal"
-
-require_relative "../src/ractorize"
 
 class BigDecimal
   def to_s
@@ -14,6 +13,8 @@ class BigDecimal
     match ? "#{match[1]}#{match[2]}" : s
   end
 end
+
+require_relative "../src/ractorize"
 
 srand(0)
 
@@ -30,18 +31,28 @@ class Productizer
 end
 
 def multiply_all(productizer_class)
-  productizers = CONCURRENCY.times.map { productizer_class.new }
+  productizers = nil
 
-  RANDOM_NUMBERS.each.with_index do |number, index|
-    productizers[index % CONCURRENCY].multiply(number)
+  GC.start
+  GC.disable
+
+  benchmark = Benchmark.measure do
+    productizers = CONCURRENCY.times.map { productizer_class.new }
+
+    RANDOM_NUMBERS.each.with_index do |number, index|
+      productizers[index % CONCURRENCY].multiply(number)
+    end
   end
 
+  GC.enable
+
   puts productizers.map(&:product).inject(:*)
+  puts "#{benchmark.real} seconds"
   puts
 end
 
-puts "running non-ractorized productizer"
+puts "benchmarking non-ractorized productizer"
 multiply_all(Productizer)
 
-puts "running ractorized productizer"
+puts "benchmarking ractorized productizer"
 multiply_all(Ractorize[Productizer])
