@@ -14,9 +14,7 @@ srand(0)
 CONCURRENCY = 3
 # Is this basically Math::E or related?? And just off a bit due to randomness?
 RANDOM_NUMBER_UPPER_BOUND = 2.78
-RANDOM_NUMBERS = 50_000.times.map { BigDecimal(rand * RANDOM_NUMBER_UPPER_BOUND) }
-
-# You must implement #<<, #get, #join, #value, and a .new/#initialize that allows no arguments
+RANDOM_NUMBERS = 25_000.times.map { BigDecimal(rand * RANDOM_NUMBER_UPPER_BOUND) }
 
 class Productizer
   attr_accessor :product

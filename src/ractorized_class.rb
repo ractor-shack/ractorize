@@ -1,23 +1,25 @@
-class RactorizedClass
-  class << self
-    attr_accessor :target_class
+module Ractorize
+  class RactorizedClass
+    class << self
+      attr_accessor :target_class
 
-    def [](klass)
-      ractorized_class = Class.new(RactorizedClass)
-      ractorized_class.target_class = klass
-      ractorized_class
-    end
+      def [](klass)
+        ractorized_class = Class.new(RactorizedClass)
+        ractorized_class.target_class = klass
+        ractorized_class
+      end
 
-    def new(...)
-      Ractorize.ractorize_object(target_class.new(...))
-    end
+      def new(...)
+        Ractorize.ractorize_object(target_class.new(...))
+      end
 
-    def method_missing(method_name, ...)
-      target_class.__send__(method_name, ...)
-    end
+      def method_missing(method_name, ...)
+        target_class.__send__(method_name, ...)
+      end
 
-    def respond_to_missing?(method_name, include_all = false)
-      target_class.respond_to?(method_name, include_all)
+      def respond_to_missing?(method_name, include_all = false)
+        target_class.respond_to?(method_name, include_all)
+      end
     end
   end
 end
