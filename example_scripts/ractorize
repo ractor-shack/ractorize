@@ -1,44 +1,50 @@
 #!/usr/bin/env ruby
 
-# require "pry"
-# require "pry-byebug"
+require "pry"
+require "pry-byebug"
 
 require_relative "../src/ractorize"
+require 'timeout'
 
 class Doubler
-  def set(integer)
-    @i = integer
-  end
+  def set(integer) = @i = integer
 
   def get
+    sleep 3
     @i
   end
 
-  def double
-    @i *= 2
-  end
+  def double = @i *= 2
 end
 
 doubler = Doubler.new
-puts "doubler.object_id"
-puts doubler.object_id
-d = Ractorize[doubler]
+# puts "doubler.object_id"
+# puts doubler.object_id
 
-d.set(10)
-d.double
-puts d.get
-
-sleep 5
+doubler.set(10)
+doubler.double
+puts doubler.get
 
 doubler = Doubler.new
-puts "doubler.object_id"
-puts doubler.object_id
-d = Ractorize[doubler]
+# puts "doubler.object_id"
+# puts doubler.object_id
+ractorized_doubler = Ractorize[doubler]
 
-sleep 2
-d.set(100)
-d.double
-puts "done doubling, asking for value"
-puts d.get
+ractorized_doubler.set(100)
+ractorized_doubler.double
+ractorized_doubler.get
 
-sleep 2
+at_exit do
+  if Ractorize.instances.any?
+    begin
+      Timeout.timeout(1) do
+        Ractorize.instances.each(&:close)
+        Ractorize.instances.each(&:join)
+      end
+    rescue Timeout::Error
+      Ractorize.instances.reject(&:__closed__?).each do |ractorized_object|
+        warn "Timeout while closing ractorized object: #{ractorized_object}"
+      end
+    end
+  end
+end

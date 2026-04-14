@@ -4,7 +4,17 @@ require_relative "ractorized_class"
 
 # TODO: should inherit from BasicObject
 class Ractorize # < BasicObject
+  @instances = []
+
   class << self
+    attr_reader :instances
+
+    def new(...)
+      super.tap do |r|
+        instances << r
+      end
+    end
+
     def ractorize_object(object)
       new(object)
     end
