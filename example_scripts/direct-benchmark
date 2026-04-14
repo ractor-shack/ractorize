@@ -2,8 +2,7 @@
 
 require "benchmark"
 require "bigdecimal"
-
-require_relative "../src/ractorize"
+require "ractorize"
 
 srand(0)
 

@@ -1,0 +1,23 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    benchmark (0.5.0)
+    bigdecimal (4.1.1)
+    ractorize (0.0.1)
+
+PLATFORMS
+  ruby
+  x86_64-linux
+
+DEPENDENCIES
+  benchmark
+  bigdecimal
+  ractorize
+
+CHECKSUMS
+  benchmark (0.5.0) sha256=465df122341aedcb81a2a24b4d3bd19b6c67c1530713fd533f3ff034e419236c
+  bigdecimal (4.1.1) sha256=1c09efab961da45203c8316b0cdaec0ff391dfadb952dd459584b63ebf8054ca
+  ractorize (0.0.1) sha256=6a751af915ef82887bbebebc1244f187b1a8fdf9cd88d48a5165e4c62cb658af
+
+BUNDLED WITH
+  4.0.10

@@ -3,8 +3,7 @@
 require "benchmark"
 require "bigdecimal"
 require "digest/md5"
-
-require_relative "../src/ractorize"
+require "ractorize"
 
 srand(0)
 
@@ -12,8 +11,6 @@ CONCURRENCY = 4
 # Is this basically Math::E or related?? And just off a bit due to randomness?
 RANDOM_NUMBER_UPPER_BOUND = 2.78
 RANDOM_NUMBERS = 10_000.times.map { BigDecimal(rand * RANDOM_NUMBER_UPPER_BOUND) }
-
-# You must implement #<<, #get, #join, #value, and a .new/#initialize that allows no arguments
 
 class Productizer
   attr_accessor :product, :random_numbers

@@ -1,8 +1,7 @@
 #!/usr/bin/env ruby
 
 require "bigdecimal"
-
-require_relative "../src/ractorize"
+require "ractorize"
 
 class BigDecimal
   def to_s

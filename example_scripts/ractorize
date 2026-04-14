@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require_relative "../src/ractorize"
+require "ractorize"
 
 class Doubler
   def set(integer)

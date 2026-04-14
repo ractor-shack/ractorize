@@ -2,6 +2,7 @@
 
 require "benchmark"
 require "bigdecimal"
+require "ractorize"
 
 class BigDecimal
   def to_s
@@ -10,8 +11,6 @@ class BigDecimal
     match ? "#{match[1]}#{match[2]}" : s
   end
 end
-
-require_relative "../src/ractorize"
 
 srand(0)
 
