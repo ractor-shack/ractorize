@@ -3,6 +3,27 @@ require_relative "ractorize/proxy_promise"
 require_relative "ractorized_class"
 
 class Ractorize < BasicObject
+  # Putting this in a constant so we can get test coverage on it since not sure how to get coverage
+  # on something inside a ractor.
+  RACTOR_PROC = proc do
+    object = receive
+
+    loop do
+      method_name, method_args, opts, return_port = receive
+
+      case method_name
+      when :close
+        return_port.<<(object, move: true)
+        close
+        break
+      else
+        value = object.__send__(method_name, *method_args, **opts)
+
+        return_port << value
+      end
+    end
+  end
+
   class << self
     def ractorize_object(object)
       new(object)
@@ -24,24 +45,7 @@ class Ractorize < BasicObject
   attr_accessor :__object__
 
   def initialize(outside_object)
-    @ractor = ::Ractor.new do
-      object = receive
-
-      loop do
-        method_name, method_args, opts, return_port = receive
-
-        case method_name
-        when :close
-          return_port.<<(object, move: true)
-          close
-          break
-        else
-          value = object.__send__(method_name, *method_args, **opts)
-
-          return_port << value
-        end
-      end
-    end
+    @ractor = ::Ractor.new(&RACTOR_PROC)
 
     # It doesn't seem like we have a way to move the object into the ractor via its constructor so do
     # it with #<< instead.
@@ -79,6 +83,15 @@ class Ractorize < BasicObject
   end
 
   def respond_to?(method_name, include_all = false)
+    # :nocov:
+    # This line is only here for when commenting out < BasicObject when debugging stuff
+    return super if ::Object === self
+    # :nocov:
+
+    respond_to_missing?(method_name, include_all)
+  end
+
+  def respond_to_missing?(method_name, include_all = false)
     value = method_missing(:respond_to?, method_name, include_all)
 
     if ::Ractorize::ProxyPromise === value

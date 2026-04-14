@@ -75,4 +75,41 @@ RSpec.describe Ractorize do
       end
     end
   end
+
+  describe "RACTOR_PROC" do
+    let(:ractor_like_class) do
+      Class.new(Thread) do
+        def queue
+          @queue ||= Queue.new
+        end
+
+        def receive
+          queue.pop
+        end
+
+        def send(message, move: false)
+          queue << message
+        end
+
+        def close
+        end
+      end
+    end
+    let(:ractor_like_object) do
+      ractor_like_class.new do
+        Thread.current.instance_exec(&described_class::RACTOR_PROC)
+      end
+    end
+
+    it "delegates messages to the target object" do
+      ractor_like_object.send(doubler)
+      return_port = Ractor::Port.new
+      ractor_like_object.send([:set, [5], {}, return_port])
+      return_port.receive
+      ractor_like_object.send([:get, [], {}, return_port])
+      expect(return_port.receive).to be(5)
+      ractor_like_object.send([:close, [], {}, return_port])
+      ractor_like_object.join
+    end
+  end
 end
