@@ -3,9 +3,6 @@
 require "benchmark"
 require "bigdecimal"
 
-# require "pry"
-# require "pry-byebug"
-
 require_relative "../src/ractorize"
 
 srand(0)

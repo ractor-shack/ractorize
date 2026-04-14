@@ -1,15 +1,12 @@
 #!/usr/bin/env ruby
 
-# require "pry"
-# require "pry-byebug"
-
 require "benchmark"
 require "bigdecimal"
 
 class BigDecimal
   def to_s
     s = inspect
-    match = /\A(-?[.\d]{15})\d+(e-?\d+)\z/.match(s)
+    match = /\A(-?[.\d]{8})\d+(e-?\d+)\z/.match(s)
     match ? "#{match[1]}#{match[2]}" : s
   end
 end
@@ -46,8 +43,8 @@ def multiply_all(productizer_class)
 
   GC.enable
 
-  puts productizers.map(&:product).inject(:*)
-  puts "#{benchmark.real} seconds"
+  puts "product is #{productizers.map(&:product).inject(:*)}"
+  puts "took #{"%.3f" % benchmark.real} seconds"
   puts
 end
 

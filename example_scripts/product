@@ -1,8 +1,5 @@
 #!/usr/bin/env ruby
 
-# require "pry"
-# require "pry-byebug"
-
 require "bigdecimal"
 
 require_relative "../src/ractorize"
@@ -10,7 +7,7 @@ require_relative "../src/ractorize"
 class BigDecimal
   def to_s
     s = inspect
-    match = /\A(-?[.\d]{15})\d+(e-?\d+)\z/.match(s)
+    match = /\A(-?[.\d]{8})\d+(e-?\d+)\z/.match(s)
     match ? "#{match[1]}#{match[2]}" : s
   end
 end

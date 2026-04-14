@@ -1,8 +1,5 @@
 #!/usr/bin/env ruby
 
-# require "pry"
-# require "pry-byebug"
-
 require_relative "../src/ractorize"
 
 class Doubler
