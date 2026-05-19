@@ -3,6 +3,8 @@ require_relative "ractorize/ractorized_object"
 require_relative "ractorize/ractorized_class"
 
 module Ractorize
+  # Putting this in a constant so we can get test coverage on it since not sure how to get coverage
+  # on something inside a ractor.
   RACTOR_PROC = proc do
     object = receive
 
@@ -20,6 +22,8 @@ module Ractorize
         return_port << value
       end
     end
+
+    object
   end
 
   class << self

@@ -3,28 +3,18 @@ require_relative "thunk"
 
 module Ractorize
   class RactorizedObject < BasicObject
-    # Putting this in a constant so we can get test coverage on it since not sure how to get coverage
-    # on something inside a ractor.
-
-    attr_accessor :__object__
-
     def initialize(outside_object)
       @ractor = ::Ractor.new(&RACTOR_PROC)
 
       # It doesn't seem like we have a way to move the object into the ractor via its constructor so do
       # it with #<< instead.
       @ractor.<<(outside_object, move: true)
+
+      # Wow, this works! Scary?
+      ::Object.instance_method(:freeze).bind(self).call
     end
 
-    def close
-      result = method_missing(:close)
-
-      @__object__ = if Thunk === result
-                      result.__value__
-                    else
-                      result
-                    end
-    end
+    def close = method_missing(:close)
 
     def join
       close
@@ -33,15 +23,20 @@ module Ractorize
     end
 
     def method_missing(method_name, *args, **opts)
-      return @__object__ if method_name == :close && @ractor.default_port.closed?
+      if @ractor.default_port.closed?
+        ::Kernel.raise ::Ractor::ClosedError,
+                       "You already closed this Ractorized object! No more methods can be sent to it."
+      end
 
-      if defined?(@__object__)
-        @__object__.__send__(method_name, *args, **opts)
+      return_port = ::Ractor::Port.new
+
+      @ractor << [method_name, args, opts, return_port]
+
+      # Let's assume the user would rather block on all predicate methods than
+      # incorrectly get a non-truthy value (thunk is always truthy even if it evaluates as nil/false)
+      if method_name.end_with?("?")
+        return_port.receive
       else
-        return_port = ::Ractor::Port.new
-
-        @ractor << [method_name, args, opts, return_port]
-
         Thunk.new(return_port)
       end
     end
@@ -56,13 +51,7 @@ module Ractorize
     end
 
     def respond_to_missing?(method_name, include_all = false)
-      value = method_missing(:respond_to?, method_name, include_all)
-
-      if ::Ractorize::Thunk === value
-        value.__value__
-      else
-        value
-      end
+      method_missing(:respond_to?, method_name, include_all)
     end
   end
 end

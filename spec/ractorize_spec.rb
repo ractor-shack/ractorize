@@ -25,8 +25,6 @@ RSpec.describe Ractorize do
         expect(ractorized_doubler.respond_to?(:set) == true).to be true
         expect(ractorized_doubler.respond_to?(:asdf) == true).to be false
         ractorized_doubler.join
-        expect(ractorized_doubler.respond_to?(:set) == true).to be true
-        expect(ractorized_doubler.respond_to?(:asdf) == true).to be false
       end
 
       it "results in proxies that can be used with its normal interface" do
@@ -36,6 +34,10 @@ RSpec.describe Ractorize do
         expect(!proxy).to be_falsey
         expect(proxy * proxy).to eq(25)
         ractorized_doubler.join
+      end
+
+      it "results in a ractorized object that is shareable" do
+        expect(Ractor.shareable?(ractorized_doubler)).to be true
       end
     end
 
@@ -47,8 +49,6 @@ RSpec.describe Ractorize do
         ractorized_doubler.set(5)
         expect(ractorized_doubler.get).to eq(5)
         ractorized_doubler.double
-        expect(ractorized_doubler.get).to eq(10)
-        ractorized_doubler.join
         expect(ractorized_doubler.get).to eq(10)
       end
 
@@ -70,8 +70,14 @@ RSpec.describe Ractorize do
         ractorized_doubler.double
         expect(ractorized_doubler.get).to eq(10)
         ractorized_doubler.close
-        ractorized_doubler.close
-        expect(ractorized_doubler.get).to eq(10)
+
+        # We can run into a deadlock if we don't sleep here, ugg.
+        # This can happen if the ractor is closed and we send a message to it after it is closed.
+        # The return port we send to the Thunk will never actually get a value.
+        sleep 0.5
+        expect {
+          ractorized_doubler.close
+        }.to raise_error(Ractor::ClosedError)
       end
     end
   end

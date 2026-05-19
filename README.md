@@ -68,6 +68,54 @@ took 0.195 seconds
 $
 ```
 
+## Gotchas
+
+### Predicate methods not ending in "?" will always return truthy values!
+If you try to use the return value of a ractorized object (or any instance of a ractorized class)
+in a boolean expression, it will always be truthy!!
+
+You need to instead call `#__value__` on it to force it into the real value. This will make it block, but
+that's what you want anyways in such a situation.
+
+Example:
+
+```ruby
+class String
+  def is_empty = empty?
+end
+
+if Ractorize["asdf"].is_empty
+  puts "It's empty!"
+else
+  puts "It's not empty!"
+end
+```
+
+This will incorrectly print out `It's empty!`! To make it work you can force it to block and wait
+for the actual value and use the actual value with the `#__value__` method:
+
+```ruby
+class String
+  def is_empty = empty?
+end
+
+if Ractorize["asdf"].is_empty.__value__
+  puts "It's empty!"
+else
+  puts "It's not empty!"
+end
+```
+
+This will correctly print out `It's not empty!`.
+
+### Calling a method on a closed ractorized object might result in a deadlock!
+
+It will usually raise a `Ractor::CloseError` but once in a while it can deadlock.
+
+Note that if you call either `#close` or `#join` on the object, then the underlying ractor will be closed.
+
+An easy way to avoid the deadlock is just don't make any use of such an object after closing it.
+
 ## Fine print
 
 Ractors are still experimental and so this gem is also still experimental.

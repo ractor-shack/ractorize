@@ -1,0 +1,28 @@
+#!/usr/bin/env ruby
+
+require "ractorize"
+
+# If you have a method that can return a falsey value that does not end in a "?" then
+# you cannot use it directly in a boolean expression or it will incorrectly behave like a
+# truthy value.  Look at this example that makes a version of String#empty? that is instead called
+# String#is_empty (not ending in "?"):
+
+class String
+  # rubocop:disable Naming/PredicateMethod
+  def is_empty = empty?
+  # rubocop:enable Naming/PredicateMethod
+end
+
+if Ractorize["asdf"].is_empty
+  puts "It's empty!"
+else
+  puts "It's not empty!"
+end
+
+if Ractorize["asdf"].is_empty.__value__
+  puts "It's empty!"
+else
+  puts "It's not empty!"
+end
+
+# This incorrectly prints out "It's empty" when using it with Ruby's `if` directly!
