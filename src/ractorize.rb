@@ -12,7 +12,7 @@ module Ractorize
       method_name, method_args, opts, return_port = receive
 
       case method_name
-      when :close
+      when :__close__
         return_port.<<(object, move: true)
         close
         break

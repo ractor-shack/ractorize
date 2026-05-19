@@ -14,10 +14,10 @@ module Ractorize
       ::Object.instance_method(:freeze).bind(self).call
     end
 
-    def close = method_missing(:close)
+    def __close__ = method_missing(:__close__)
 
-    def join
-      close
+    def __join__
+      __close__
       @ractor.join
       self
     end

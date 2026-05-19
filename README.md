@@ -112,7 +112,7 @@ This will correctly print out `It's not empty!`.
 
 It will usually raise a `Ractor::CloseError` but once in a while it can deadlock.
 
-Note that if you call either `#close` or `#join` on the object, then the underlying ractor will be closed.
+Note that if you call either `#__close__` or `#__join__` on the object, then the underlying ractor will be closed.
 
 An easy way to avoid the deadlock is just don't make any use of such an object after closing it.
 
