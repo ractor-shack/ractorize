@@ -8,7 +8,11 @@ module Ractorize
 
       # It doesn't seem like we have a way to move the object into the ractor via its constructor so do
       # it with #<< instead.
-      @ractor.<<(outside_object, move: true)
+      if ::Ractor.shareable?(outside_object)
+        @ractor << outside_object
+      else
+        @ractor.send(outside_object, move: true)
+      end
 
       # Wow, this works! Scary?
       ::Object.instance_method(:freeze).bind(self).call

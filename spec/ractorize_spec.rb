@@ -39,6 +39,13 @@ RSpec.describe Ractorize do
       it "results in a ractorized object that is shareable" do
         expect(Ractor.shareable?(ractorized_doubler)).to be true
       end
+
+      context "when it's a shareable object" do
+        it "can still wrap it just fine" do
+          ractorized_10 = described_class[10]
+          expect(ractorized_10).to be_even
+        end
+      end
     end
 
     context "when ractorizing a class" do
