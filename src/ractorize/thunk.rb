@@ -6,6 +6,10 @@ module Ractorize
       self.__return_value_port__ = return_value_port
     end
 
+    def initialize_clone(...)
+      # is this actually necessary?? Seems so?
+    end
+
     def method_missing(method_name, *)
       __value__.send(method_name, *)
     end
