@@ -38,7 +38,7 @@ module Ractorize
 
       # Let's assume the user would rather block on all predicate methods than
       # incorrectly get a non-truthy value (thunk is always truthy even if it evaluates as nil/false)
-      if method_name.end_with?("?")
+      if method_name == :== || method_name == :! || method_name == :!= || method_name.end_with?("?")
         return_port.receive
       else
         Thunk.new(return_port)
@@ -57,5 +57,10 @@ module Ractorize
     def respond_to_missing?(method_name, include_all = false)
       method_missing(:respond_to?, method_name, include_all)
     end
+
+    def ==(other) = method_missing(:==, other)
+    def !=(other) = method_missing(:==, other)
+    def ! = method_missing(:!)
+    def equal?(other) = method_missing(:equal?, other)
   end
 end
