@@ -34,7 +34,7 @@ module Ractorize
 
       return_port = ::Ractor::Port.new
 
-      @ractor << [method_name, args, opts, return_port]
+      @ractor << [method_name, args.dup.freeze, opts.dup.freeze, return_port].freeze
 
       # Let's assume the user would rather block on all predicate methods than
       # incorrectly get a non-truthy value (thunk is always truthy even if it evaluates as nil/false)
