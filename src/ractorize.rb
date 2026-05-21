@@ -19,6 +19,8 @@ module Ractorize
       else
         value = object.__send__(method_name, *method_args, **opts)
 
+        value = value.__value__ while Thunk === value
+
         return_port << value
       end
     end

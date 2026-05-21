@@ -124,5 +124,86 @@ RSpec.describe Ractorize do
       ractor_like_object.send([:__close__, [], {}, return_port])
       ractor_like_object.join
     end
+
+    context "when target object is also ractorized" do
+      it "delegates messages to the target object" do
+        ractor_like_object.send(described_class[doubler])
+        return_port = Ractor::Port.new
+        ractor_like_object.send([:set, [5], {}, return_port])
+        return_port.receive
+        ractor_like_object.send([:get, [], {}, return_port])
+        expect(return_port.receive).to be(5)
+        ractor_like_object.send([:__close__, [], {}, return_port])
+        ractor_like_object.join
+      end
+    end
+  end
+
+  context "when nested ractorized objects" do
+    context "when an outer ractorized object receives a thunk from an inner ractorized object" do
+      context "when a predicate on a shareable object" do
+        let(:outer_ractorized_object) do
+          o = Object.new
+
+          class << o
+            attr_accessor :inner
+
+            def even? = inner.even?
+            def to_s = inner.to_s
+          end
+
+          o.inner = described_class[10]
+
+          o
+        end
+
+        it "resolves the predicate thunk internally" do
+          value = outer_ractorized_object.even?
+          expect(value).to be true
+          expect(Ractorize::Thunk === value).to be false
+        end
+      end
+
+      context "when nested non-shareables" do
+        let(:outer_class) do
+          inner_class
+
+          stub_class("Outer") do
+            attr_accessor :inner
+
+            def initialize
+              self.inner = Ractorize[Inner].new
+            end
+
+            def foo = inner.foo
+            def length = inner.foo.length
+          end
+        end
+
+        let(:inner_class) do
+          stub_class("Inner") do
+            def foo = @foo ||= Ractorize["asdf"]
+          end
+        end
+
+        it "resolves the inner thunk" do
+          outer = described_class[outer_class].new
+          expect(outer.inner.foo.length).to eq(4)
+          expect(Ractorize::Thunk === outer.inner.foo.length).to be true
+          expect(outer.inner).to be_a(Inner)
+          expect(Ractorize::Thunk === outer.inner).to be true
+          expect(Ractorize::Thunk === outer.length).to be true
+          expect(outer.length).to eq(4)
+
+          value = outer.foo
+          expect(value.length).to eq(4)
+          expect(value.class).to eq(String)
+          expect(value).to eq("asdf")
+          expect(Ractorize::Thunk === value).to be true
+          expect(Ractorize::Thunk === value.length).to be true
+          expect(Ractorize::Thunk === value.__value__).to be false
+        end
+      end
+    end
   end
 end
