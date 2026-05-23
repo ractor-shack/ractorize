@@ -62,5 +62,11 @@ module Ractorize
     def !=(other) = method_missing(:==, other)
     def ! = method_missing(:!)
     def equal?(other) = method_missing(:equal?, other)
+
+    def to_s = inspect
+
+    def inspect
+      "RactorizedObject<#{::Object.instance_method(:object_id).bind(self).call}>[#{method_missing(:inspect)}]".freeze
+    end
   end
 end
