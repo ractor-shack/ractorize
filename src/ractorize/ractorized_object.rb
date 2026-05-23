@@ -26,7 +26,11 @@ module Ractorize
       self
     end
 
-    def method_missing(method_name, *args, **opts)
+    def method_missing(method_name, *args, **opts, &block)
+      if block
+        ::Kernel.raise "Does not currently support passing blocks to methods of ractorized objects!"
+      end
+
       if @ractor.default_port.closed?
         ::Kernel.raise ::Ractor::ClosedError,
                        "You already closed this Ractorized object! No more methods can be sent to it."
