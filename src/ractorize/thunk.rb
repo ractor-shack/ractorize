@@ -10,8 +10,8 @@ module Ractorize
       # is this actually necessary?? Seems so?
     end
 
-    def method_missing(method_name, *)
-      __value__.send(method_name, *)
+    def method_missing(...)
+      __value__.__send__(...)
     end
 
     def respond_to_missing?(method_name, include_all = false)
