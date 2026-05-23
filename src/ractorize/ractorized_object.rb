@@ -14,7 +14,6 @@ module Ractorize
         @ractor.send(outside_object, move: true)
       end
 
-      # Wow, this works! Scary?
       ::Object.instance_method(:freeze).bind(self).call
     end
 
@@ -27,10 +26,6 @@ module Ractorize
     end
 
     def method_missing(method_name, *args, **opts, &block)
-      if block
-        ::Kernel.raise "Does not currently support passing blocks to methods of ractorized objects!"
-      end
-
       if @ractor.default_port.closed?
         ::Kernel.raise ::Ractor::ClosedError,
                        "You already closed this Ractorized object! No more methods can be sent to it."
@@ -38,11 +33,34 @@ module Ractorize
 
       return_port = ::Ractor::Port.new
 
-      @ractor << [method_name, args.dup.freeze, opts.dup.freeze, return_port].freeze
+      @ractor << [method_name, args.dup.freeze, opts.dup.freeze, return_port, !!block].freeze
 
+      if block
+        stop = false
+        value = nil
+
+        until stop
+          # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
+          # pattern path, but since that's purely defensive I have no interest in testing it.
+          # :nocov:
+          case return_port.receive
+          # :nocov:
+          in :return, value
+            stop = true
+          in :yield, [yielded_args, yielded_opts, yielded_block], block_result_port
+            # TODO: yielded_block likely won't work when actually used
+            # so we should probably instead just raise an exception
+            # TODO: handle break and also raise in the block
+            block_result = block.call(*yielded_args, **yielded_opts, &yielded_block)
+
+            block_result_port << [:normal, block_result]
+          end
+        end
+
+        value
       # Let's assume the user would rather block on all predicate methods than
       # incorrectly get a non-truthy value (thunk is always truthy even if it evaluates as nil/false)
-      if method_name == :== || method_name == :! || method_name == :!= || method_name.end_with?("?")
+      elsif method_name == :== || method_name == :! || method_name == :!= || method_name.end_with?("?")
         return_port.receive
       else
         Thunk.new(return_port)

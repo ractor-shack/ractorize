@@ -19,3 +19,6 @@ Style/OneClassPerFile:
 
 Style/CommentedKeyword:
   Enabled: false
+
+Style/DoubleNegation:
+  Enabled: false

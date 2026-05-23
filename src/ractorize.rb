@@ -9,7 +9,7 @@ module Ractorize
     object = receive
 
     loop do
-      method_name, method_args, opts, return_port = receive
+      method_name, method_args, opts, return_port, block_given = receive
 
       case method_name
       when :__close__
@@ -17,11 +17,34 @@ module Ractorize
         close
         break
       else
-        value = object.__send__(method_name, *method_args, **opts)
+        if block_given
+          block_result_port = Ractor::Port.new
 
-        value = value.__value__ while Thunk === value
+          value = object.__send__(method_name, *method_args, **opts) do |*args, **opts, &b|
+            return_port << [:yield, [args, opts, b].freeze, block_result_port].freeze
 
-        return_port << value
+            outcome_type, return_value = block_result_port.receive
+
+            case outcome_type
+            when :normal
+              return_value
+            when :break
+              break return_value
+            else
+              # :nocov:
+              raise "Not sure how to handle outcome_type #{outcome_type}"
+              # :nocov:
+            end
+          end
+
+          return_port << [:return, value].freeze
+        else
+          value = object.__send__(method_name, *method_args, **opts)
+
+          value = value.__value__ while Thunk === value
+
+          return_port << value
+        end
       end
     end
 

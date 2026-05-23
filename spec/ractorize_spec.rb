@@ -137,6 +137,89 @@ RSpec.describe Ractorize do
         ractor_like_object.join
       end
     end
+
+    context "when implementing a method that takes a block" do
+      def handle_return_port(return_port, block)
+        value = nil
+
+        # pretty terrible to repeat a bunch of this logic here, ugg
+        loop do
+          # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
+          # pattern path, but since that's purely defensive I have no interest in testing it.
+          # :nocov:
+          case return_port.receive
+            # :nocov:
+          in :return, value
+            break
+          in :yield, [yielded_args, yielded_opts, yielded_block], block_result_port
+            # TODO: yielded_block likely won't work when actually used
+            # so we should probably instead just raise an exception
+            # TODO: handle break and also raise in the block
+            block_result_port << begin
+              block_result = block.call(*yielded_args, **yielded_opts, &yielded_block)
+
+              [:normal, block_result]
+            rescue LocalJumpError => e
+              case e.reason
+              when :break
+                [:break, e.exit_value]
+              else
+                # :nocov:
+                raise "Not sure how to handle LocalJumpError #{e.reason}"
+                # :nocov:
+              end
+            end
+          end
+        end
+
+        value
+      end
+
+      it "can carry executing the block" do
+        h = { "foo" => "bar", "baz" => "quux" }
+        ractorized_h = described_class[h]
+        ractor_like_object.send(ractorized_h)
+
+        all = []
+
+        return_port = Ractor::Port.new
+
+        block = proc do |key, value|
+          all << [key, value]
+        end
+
+        ractor_like_object.send([:each_pair, [], {}, return_port, block])
+
+        value = handle_return_port(return_port, block)
+
+        expect(all).to eq([["foo", "bar"], ["baz", "quux"]])
+        expect(value).to eq(ractorized_h)
+      end
+
+      context "when block containts 'break'" do
+        it "can carry out executing the block" do
+          h = { "foo" => "bar", "baz" => "quux" }
+          ractorized_h = described_class[h]
+          ractor_like_object.send(ractorized_h)
+
+          all = []
+
+          return_port = Ractor::Port.new
+
+          block = proc do |key, value|
+            all << [key, value]
+            break 100
+          end
+
+          ractor_like_object.send([:each_pair, [], {}, return_port, block])
+
+          value = handle_return_port(return_port, block)
+
+          expect(all).to eq([["foo", "bar"]])
+          expect(value).to eq(100)
+        end
+      end
+    end
   end
 
   context "when nested ractorized objects" do
@@ -203,6 +286,45 @@ RSpec.describe Ractorize do
           expect(Ractorize::Thunk === value.length).to be true
           expect(Ractorize::Thunk === value.__value__).to be false
         end
+      end
+    end
+  end
+
+  context "when passing a block across ractors" do
+    let(:object) do
+      { "foo" => "bar", "baz" => "quux" }
+    end
+    let(:ractorized_object) { described_class[object] }
+
+    it "can handle blocks" do
+      all = []
+
+      ractorized_object.each_pair do |key, value|
+        all << [key, value]
+      end
+
+      expect(all).to eq([["foo", "bar"], ["baz", "quux"]])
+    end
+
+    context "when the block contains a break" do
+      it "can handle that as expected" do
+        all = []
+
+        # rubocop:disable Lint/UnreachableLoop
+        result = ractorized_object.each_pair do |key, value|
+          all << [key, value]
+          break 100
+        end
+        # rubocop:enable Lint/UnreachableLoop
+
+        expect(all).to eq([["foo", "bar"]])
+        expect(result).to be(100)
+      end
+    end
+
+    describe "#inspect" do
+      it "is a string" do
+        expect(ractorized_object.inspect).to be_a(String)
       end
     end
   end
