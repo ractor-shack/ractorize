@@ -328,4 +328,61 @@ RSpec.describe Ractorize do
       end
     end
   end
+
+  describe ".any_thunks?" do
+    context "when there are no thunks in the structure" do
+      let(:structure) do
+        [{ a: Struct.new(:foo).new("bar") }]
+      end
+
+      it "is true" do
+        expect(structure.first[:a].foo).to eq("bar")
+        expect(described_class.any_thunks?(structure)).to be false
+      end
+
+      context "when data structure is cyclical" do
+        let(:structure) do
+          h = { a: Struct.new(:foo).new("bar") }
+          h[:h] = h
+
+          [h]
+        end
+
+        it "is true" do
+          expect(structure.first[:h][:h][:a].foo).to eq("bar")
+          expect(described_class.any_thunks?(structure)).to be false
+        end
+      end
+    end
+
+    context "when there are thunks in the structure" do
+      let(:structure) do
+        bar = Ractorize::Thunk.new(Ractor::Port.new.tap { it << "bar" })
+
+        [{ a: Struct.new(:foo).new(bar) }]
+      end
+
+      it "is true" do
+        expect(structure.first[:a].foo).to eq("bar")
+        expect(described_class.any_thunks?(structure)).to be true
+      end
+
+      context "when those thunks are in an object's instance variables" do
+        let(:structure) do
+          bar = Ractorize::Thunk.new(Ractor::Port.new.tap { it << "bar" })
+
+          a = Object.new
+          a.singleton_class.attr_accessor :foo
+          a.foo = bar
+
+          [{ a: }]
+        end
+
+        it "is true" do
+          expect(structure.first[:a].foo).to eq("bar")
+          expect(described_class.any_thunks?(structure)).to be true
+        end
+      end
+    end
+  end
 end

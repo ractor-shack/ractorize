@@ -3,6 +3,31 @@ require_relative "ractorize/ractorized_object"
 require_relative "ractorize/ractorized_class"
 
 module Ractorize
+  class << self
+    def any_thunks?(structure, seen = Set.new)
+      return true if Thunk === structure
+      return false if seen.include?(structure)
+
+      seen << structure
+
+      case structure
+      when Array
+        structure.any? { any_thunks?(it, seen) }
+      when Hash
+        any_thunks?(structure.keys, seen) || any_thunks?(structure.values, seen)
+      when Struct
+        any_thunks?(structure.values)
+      else
+        ivarsget = ::Object.instance_method(:instance_variables)
+        iget = ::Object.instance_method(:instance_variable_get)
+
+        ivarsget.bind(structure).call.any? do |var|
+          any_thunks?(iget.bind(structure).call(var), seen)
+        end
+      end
+    end
+  end
+
   # Putting this in a constant so we can get test coverage on it since not sure how to get coverage
   # on something inside a ractor.
   RACTOR_PROC = proc do
