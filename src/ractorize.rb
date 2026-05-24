@@ -4,25 +4,39 @@ require_relative "ractorize/ractorized_class"
 
 module Ractorize
   class << self
-    def any_thunks?(structure, seen = Set.new)
-      return true if Thunk === structure
-      return false if seen.include?(structure)
+    def any_thunks?(structure)
+      # rubocop:disable Lint/UnreachableLoop
+      each_thunk(structure) { return true }
+      # rubocop:enable Lint/UnreachableLoop
+      false
+    end
+
+    # Unfortunately, can't read from a port that a different ractor made.
+    # Not sure why that is but we need to handle that case.
+    def resolve_all_thunks(structure)
+      each_thunk(structure, &:__value__)
+    end
+
+    def each_thunk(structure, seen = Set.new, &block)
+      return block.call(structure) if Thunk === structure
+      return if seen.include?(structure)
 
       seen << structure
 
       case structure
       when Array
-        structure.any? { any_thunks?(it, seen) }
+        structure.each { each_thunk(it, seen, &block) }
       when Hash
-        any_thunks?(structure.keys, seen) || any_thunks?(structure.values, seen)
+        each_thunk(structure.keys, seen, &block)
+        each_thunk(structure.values, seen, &block)
       when Struct
-        any_thunks?(structure.values)
+        each_thunk(structure.values, seen, &block)
       else
         ivarsget = ::Object.instance_method(:instance_variables)
         iget = ::Object.instance_method(:instance_variable_get)
 
-        ivarsget.bind(structure).call.any? do |var|
-          any_thunks?(iget.bind(structure).call(var), seen)
+        ivarsget.bind(structure).call.each do |var|
+          each_thunk(iget.bind(structure).call(var), seen, &block)
         end
       end
     end
@@ -31,7 +45,19 @@ module Ractorize
   # Putting this in a constant so we can get test coverage on it since not sure how to get coverage
   # on something inside a ractor.
   RACTOR_PROC = proc do
-    object = receive
+    mode = receive
+
+    object = case mode
+             when :class
+               klass, args, opts, block = receive
+               klass.new(*args, **opts, &block)
+             when :object
+               receive
+             else
+               # :nocov:
+               ::Kernel.raise "Invalid mode #{mode}"
+               # :nocov:
+             end
 
     loop do
       method_name, method_args, opts, return_port, block_given = receive
@@ -57,7 +83,7 @@ module Ractorize
               break return_value
             else
               # :nocov:
-              raise "Not sure how to handle outcome_type #{outcome_type}"
+              ::Kernel.raise "Not sure how to handle outcome_type #{outcome_type}"
               # :nocov:
             end
           end
@@ -74,11 +100,20 @@ module Ractorize
     end
 
     object
+  rescue => e
+    # :nocov:
+    ::Kernel.puts
+    ::Kernel.puts "an error!!! #{e.class} #{e.message} #{e}"
+    ::Kernel.puts e.backtrace
+    ::Kernel.puts
+
+    raise
+    # :nocov:
   end
 
   class << self
     def ractorize_object(object)
-      RactorizedObject.new(object)
+      RactorizedObject.new(:object, object)
     end
 
     def ractorize_class(klass)

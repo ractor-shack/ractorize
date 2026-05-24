@@ -1,16 +1,14 @@
 module Ractorize
   class RactorizedClass
     class << self
-      attr_accessor :target_class
-
       def [](klass)
         ractorized_class = Class.new(RactorizedClass)
-        ractorized_class.target_class = klass
+        ractorized_class.define_singleton_method(:target_class, Ractor.shareable_proc { klass })
         ractorized_class
       end
 
       def new(...)
-        Ractorize.ractorize_object(target_class.new(...))
+        RactorizedObject.new(:class, target_class, ...)
       end
 
       def method_missing(method_name, ...)

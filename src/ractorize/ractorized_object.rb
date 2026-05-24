@@ -3,15 +3,35 @@ require_relative "thunk"
 
 module Ractorize
   class RactorizedObject < BasicObject
-    def initialize(outside_object)
+    def initialize(mode, *args, **opts, &block)
       @ractor = ::Ractor.new(&RACTOR_PROC)
 
-      # It doesn't seem like we have a way to move the object into the ractor via its constructor so do
-      # it with #<< instead.
-      if ::Ractor.shareable?(outside_object)
-        @ractor << outside_object
+      case mode
+      when :object
+        @ractor << :object
+
+        outside_object = args.first
+
+        ::Ractorize.resolve_all_thunks(outside_object)
+
+        if ::Ractor.shareable?(outside_object)
+          @ractor << outside_object
+        else
+          @ractor.send(outside_object, move: true)
+        end
+      when :class
+        @ractor << :class
+
+        klass, *args = args
+
+        ::Ractorize.resolve_all_thunks(args)
+        ::Ractorize.resolve_all_thunks(opts)
+
+        @ractor << [klass, args.freeze, opts.dup.freeze, block].freeze
       else
-        @ractor.send(outside_object, move: true)
+        # :nocov:
+        ::Kernel.raise "Invalid mode #{mode}"
+        # :nocov:
       end
 
       ::Object.instance_method(:freeze).bind(self).call

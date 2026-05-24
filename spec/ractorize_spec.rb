@@ -115,6 +115,7 @@ RSpec.describe Ractorize do
     end
 
     it "delegates messages to the target object" do
+      ractor_like_object.send(:object)
       ractor_like_object.send(doubler)
       return_port = Ractor::Port.new
       ractor_like_object.send([:set, [5], {}, return_port])
@@ -127,6 +128,7 @@ RSpec.describe Ractorize do
 
     context "when target object is also ractorized" do
       it "delegates messages to the target object" do
+        ractor_like_object.send(:object)
         ractor_like_object.send(described_class[doubler])
         return_port = Ractor::Port.new
         ractor_like_object.send([:set, [5], {}, return_port])
@@ -178,6 +180,7 @@ RSpec.describe Ractorize do
       it "can carry executing the block" do
         h = { "foo" => "bar", "baz" => "quux" }
         ractorized_h = described_class[h]
+        ractor_like_object.send(:object)
         ractor_like_object.send(ractorized_h)
 
         all = []
@@ -196,11 +199,21 @@ RSpec.describe Ractorize do
         expect(value).to eq(ractorized_h)
       end
 
-      context "when block containts 'break'" do
+      context "when block contains 'break'" do
         it "can carry out executing the block" do
-          h = { "foo" => "bar", "baz" => "quux" }
-          ractorized_h = described_class[h]
-          ractor_like_object.send(ractorized_h)
+          ractorized_hash_class = described_class[Hash]
+
+          ractorized_h = ractorized_hash_class.new
+          ractorized_h["foo"] = "bar"
+          ractorized_h["baz"] = "quux"
+
+          ractor_like_object.send(:class)
+          ractor_like_object.send([Hash])
+
+          return_port = Ractor::Port.new
+
+          ractor_like_object.send([:[]=, ["foo", "bar"], {}, return_port])
+          ractor_like_object.send([:[]=, ["baz", "quux"], {}, return_port])
 
           all = []
 
