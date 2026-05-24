@@ -1,5 +1,7 @@
 module Ractorize
   class Thunk < BasicObject
+    class EscapingRactorError < ::StandardError; end
+
     attr_accessor :__return_value_port__, :__ractor__
 
     def initialize(return_value_port)
@@ -31,7 +33,7 @@ module Ractorize
               end
 
       # :nocov:
-      ::Kernel.raise "wtf" if ::Ractorize::Thunk === value
+      ::Kernel.raise EscapingRactorError if ::Ractorize::Thunk === value
       # :nocov:
 
       @__value__ = value

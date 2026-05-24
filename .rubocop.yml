@@ -22,3 +22,6 @@ Style/CommentedKeyword:
 
 Style/DoubleNegation:
   Enabled: false
+
+Naming/MethodParameterName:
+  Enabled: false

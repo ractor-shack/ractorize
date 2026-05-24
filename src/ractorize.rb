@@ -72,7 +72,10 @@ module Ractorize
           block_result_port = Ractor::Port.new
 
           value = object.__send__(method_name, *method_args, **opts) do |*args, **opts, &b|
-            return_port << [:yield, [args, opts, b].freeze, block_result_port].freeze
+            ::Ractorize.resolve_all_thunks(args)
+            ::Ractorize.resolve_all_thunks(opts)
+
+            return_port << [:yield, [args.dup.freeze, opts.dup.freeze, b].freeze, block_result_port].freeze
 
             outcome_type, return_value = block_result_port.receive
 

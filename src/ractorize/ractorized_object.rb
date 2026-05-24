@@ -53,6 +53,9 @@ module Ractorize
 
       return_port = ::Ractor::Port.new
 
+      ::Ractorize.resolve_all_thunks(args)
+      ::Ractorize.resolve_all_thunks(opts)
+
       @ractor << [method_name, args.dup.freeze, opts.dup.freeze, return_port, !!block].freeze
 
       if block
@@ -60,10 +63,13 @@ module Ractorize
         value = nil
 
         until stop
+          data = return_port.receive
+
           # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
           # pattern path, but since that's purely defensive I have no interest in testing it.
+
           # :nocov:
-          case return_port.receive
+          case data
           # :nocov:
           in :return, value
             stop = true
@@ -71,9 +77,11 @@ module Ractorize
             # TODO: yielded_block likely won't work when actually used
             # so we should probably instead just raise an exception
             # TODO: handle break and also raise in the block
-            block_result = block.call(*yielded_args, **yielded_opts, &yielded_block)
+            block_result = block.call(*yielded_args.freeze, **yielded_opts.freeze, &yielded_block)
 
-            block_result_port << [:normal, block_result]
+            block_result = block_result.__value__ while ::Ractorize::Thunk === block_result
+
+            block_result_port << [:normal, block_result].freeze
           end
         end
 
@@ -85,7 +93,7 @@ module Ractorize
         value = return_port.receive
 
         # :nocov:
-        ::Kernel.raise "wtf" if ::Ractorize::Thunk === value
+        ::Kernel.raise ::Ractorize::Thunk::EscapingRactorError if ::Ractorize::Thunk === value
         # :nocov:
 
         value
@@ -115,7 +123,10 @@ module Ractorize
     def to_s = inspect
 
     def inspect
-      "RactorizedObject<#{::Object.instance_method(:object_id).bind(self).call}>[#{method_missing(:inspect)}]".freeze
+      object_id = ::Object.instance_method(:object_id).bind(self).call
+      moved_object_inspect = method_missing(:inspect)
+
+      "RactorizedObject<#{object_id}>[#{moved_object_inspect}]".freeze
     end
   end
 end

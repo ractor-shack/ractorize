@@ -1,3 +1,11 @@
+## [0.0.4] - 2026-05-23
+
+- Prevent thunks from crossing ractor boundaries
+- Create instances of ractorized classes inside the ractor instead of moving them
+- Add support for methods that take blocks
+- Add #to_s/#inspect to RactorizedObject to help with debugging
+- Use #__send__ instead of #send to work with BasicObject
+
 ## [0.0.3] - 2026-05-21
 
 - Treat ==, !=, and ! as predicates and delegate them to the ractor (as well as #equal?)

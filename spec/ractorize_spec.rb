@@ -316,6 +316,27 @@ RSpec.describe Ractorize do
       expect(all).to eq([["foo", "bar"], ["baz", "quux"]])
     end
 
+    context "when the block returns a thunk" do
+      it "can handle blocks" do
+        pair_builder = Object.new
+        pair_builder.singleton_class.class_eval do
+          def make_pair(a, b) = [a, b]
+        end
+
+        pair_builder = described_class[pair_builder]
+
+        all = []
+
+        ractorized_object.each_pair do |key, value|
+          pair = pair_builder.make_pair(key, value)
+          all << pair
+          pair
+        end
+
+        expect(all).to eq([["foo", "bar"], ["baz", "quux"]])
+      end
+    end
+
     context "when the block contains a break" do
       it "can handle that as expected" do
         all = []
@@ -393,6 +414,25 @@ RSpec.describe Ractorize do
           expect(described_class.any_thunks?(structure)).to be true
         end
       end
+    end
+  end
+
+  context "when a thunk is resolved in a different ractorized object than the one that received it" do
+    it "can still resolve the thunk" do
+      five = described_class[5]
+
+      thunk = five * 2
+
+      expect(Ractorize::Thunk === thunk).to be true
+      expect(thunk).to eq(10)
+
+      ractorized_doubler.set(five * 2)
+      ractorized_doubler.double
+      result = ractorized_doubler.get
+
+      expect(Ractorize::Thunk === result).to be true
+
+      expect(result.__value__).to eq(20)
     end
   end
 end
