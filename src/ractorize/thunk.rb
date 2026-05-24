@@ -1,8 +1,9 @@
 module Ractorize
   class Thunk < BasicObject
-    attr_accessor :__return_value_port__
+    attr_accessor :__return_value_port__, :__ractor__
 
     def initialize(return_value_port)
+      self.__ractor__ = ::Ractor.current
       self.__return_value_port__ = return_value_port
     end
 
@@ -21,7 +22,23 @@ module Ractorize
     def __value__
       return @__value__ if defined?(@__value__)
 
-      @__value__ = __return_value_port__.receive
+      value = if ::Ractor.current == __ractor__
+                __return_value_port__.receive
+              else
+                # :nocov:
+                raise "Somehow this thunk was passed between ractors but wasn't resolved first."
+                # :nocov:
+              end
+
+      # :nocov:
+      ::Kernel.raise "wtf" if ::Ractorize::Thunk === value
+      # :nocov:
+
+      @__value__ = value
+
+      ::Object.instance_method(:freeze).bind(self).call
+
+      value
     end
 
     def !

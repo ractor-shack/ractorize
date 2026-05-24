@@ -255,8 +255,8 @@ RSpec.describe Ractorize do
 
         it "resolves the predicate thunk internally" do
           value = outer_ractorized_object.even?
-          expect(value).to be true
           expect(Ractorize::Thunk === value).to be false
+          expect(value).to be true
         end
       end
 
@@ -267,10 +267,7 @@ RSpec.describe Ractorize do
           stub_class("Outer") do
             attr_accessor :inner
 
-            def initialize
-              self.inner = Ractorize[Inner].new
-            end
-
+            def initialize = self.inner = Ractorize[Inner].new
             def foo = inner.foo
             def length = inner.foo.length
           end

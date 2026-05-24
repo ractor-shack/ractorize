@@ -80,8 +80,15 @@ module Ractorize
         value
       # Let's assume the user would rather block on all predicate methods than
       # incorrectly get a non-truthy value (thunk is always truthy even if it evaluates as nil/false)
-      elsif method_name == :== || method_name == :! || method_name == :!= || method_name.end_with?("?")
-        return_port.receive
+      elsif method_name == :== || method_name == :! || method_name == :!= ||
+            method_name == :inspect || method_name == :to_s || method_name.end_with?("?")
+        value = return_port.receive
+
+        # :nocov:
+        ::Kernel.raise "wtf" if ::Ractorize::Thunk === value
+        # :nocov:
+
+        value
       else
         Thunk.new(return_port)
       end
