@@ -50,9 +50,39 @@ module Ractorize
     object = case mode
              when :class
                klass, args, opts, block = receive
-               klass.new(*args, **opts, &block)
+               klass.new(*args.freeze, **opts.freeze, &block)
              when :object
                receive
+             when :class_arg_by_arg
+               klass = receive
+
+               args = []
+               opts = {}
+               block = nil
+
+               loop do
+                 arg_type = receive
+
+                 case arg_type
+                 when :arg
+                   args << receive
+                 when :kwarg
+                   name = receive
+                   value = receive
+
+                   opts[name] = value
+                 when :block
+                   block = receive
+                 when :done
+                   break
+                 else
+                   # :nocov:
+                   ::Kernel.raise "Unknown class_by_arg arg type #{arg_type}"
+                   # :nocov:
+                 end
+               end
+
+               klass.new(*args.freeze, **opts.freeze, &block)
              else
                # :nocov:
                ::Kernel.raise "Invalid mode #{mode}"

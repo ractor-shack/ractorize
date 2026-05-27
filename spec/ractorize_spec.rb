@@ -66,6 +66,46 @@ RSpec.describe Ractorize do
           expect(ractorized_doubler_class.some_singleton_method).to eq(10)
         end
       end
+
+      context "when creating an instance with non-shareable args" do
+        let(:args) { ["foo"] }
+        let(:klass) do
+          stub_class("Foo") do
+            attr_accessor :foo
+
+            def initialize(foo) = self.foo = foo
+          end
+        end
+        let(:ractorized_klass) { described_class[klass] }
+
+        it "moves the args to the new ractor" do
+          expect(Ractor.shareable?(args.first)).to be false
+          object = ractorized_klass.new(*args)
+          expect(object.foo).to eq("foo")
+          expect(Ractor::MovedObject === args.first).to be true
+        end
+
+        context "when keyword args are not shareable" do
+          let(:opts) do
+            { foo: "foo" }
+          end
+
+          let(:klass) do
+            stub_class("Foo") do
+              attr_accessor :foo
+
+              def initialize(foo:, &block) = self.foo = foo + block.call
+            end
+          end
+
+          it "moves the args to the new ractor" do
+            expect(Ractor.shareable?(opts[:foo])).to be false
+            object = ractorized_klass.new(**opts, &Ractor.shareable_proc { "bar" })
+            expect(object.foo).to eq("foobar")
+            expect(Ractor::MovedObject === opts[:foo]).to be true
+          end
+        end
+      end
     end
   end
 
@@ -231,6 +271,37 @@ RSpec.describe Ractorize do
           expect(all).to eq([["foo", "bar"]])
           expect(value).to eq(100)
         end
+      end
+    end
+
+    context "when constructing an instance arg-by-arg" do
+      let(:klass) do
+        stub_class("Foo") do
+          attr_accessor :foo
+
+          def initialize(foo, bar:, &block)
+            self.foo = foo + bar + block.call
+          end
+        end
+      end
+
+      it "can handle building the object constructor args piece-by-piece" do
+        ractor_like_object.send(:class_arg_by_arg)
+        ractor_like_object.send(klass)
+        ractor_like_object.send(:arg)
+        ractor_like_object.send("foo")
+        ractor_like_object.send(:kwarg)
+        ractor_like_object.send(:bar)
+        ractor_like_object.send("bar")
+        ractor_like_object.send(:block)
+        ractor_like_object.send(Ractor.shareable_proc { "baz" })
+        ractor_like_object.send(:done)
+
+        return_port = Ractor::Port.new
+
+        ractor_like_object.send([:foo, [], {}, return_port])
+
+        expect(return_port.receive).to eq("foobarbaz")
       end
     end
   end

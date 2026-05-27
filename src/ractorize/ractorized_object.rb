@@ -20,14 +20,36 @@ module Ractorize
           @ractor.send(outside_object, move: true)
         end
       when :class
-        @ractor << :class
-
         klass, *args = args
 
         ::Ractorize.resolve_all_thunks(args)
         ::Ractorize.resolve_all_thunks(opts)
 
-        @ractor << [klass, args.freeze, opts.dup.freeze, block].freeze
+        if args.any? { !::Ractor.shareable?(it) } || opts.values.any? { !::Ractor.shareable?(it) }
+          @ractor << :class_arg_by_arg
+          @ractor << klass
+
+          args.each do |arg|
+            @ractor << :arg
+            @ractor.send(arg, move: !::Ractor.shareable?(arg))
+          end
+
+          opts.each_pair do |name, value|
+            @ractor << :kwarg
+            @ractor << name
+            @ractor.send(value, move: !::Ractor.shareable?(value))
+          end
+
+          if block
+            @ractor << :block
+            @ractor << block
+          end
+
+          @ractor << :done
+        else
+          @ractor << :class
+          @ractor << [klass, args.freeze, opts.dup.freeze, block].freeze
+        end
       else
         # :nocov:
         ::Kernel.raise "Invalid mode #{mode}"
