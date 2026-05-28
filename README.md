@@ -259,6 +259,13 @@ end
 
 This will correctly print out `It's not empty!`.
 
+Note that this isn't necessary with methods ending in "?" as this will automatically block
+and return the boolean value.
+
+Also, the predicate methods `==`, `!=` and `!` also will automatically block and return the boolean
+value, just like methods ending in "?". So you can freely do `if Ractorize["asdf"] == "asdf"` works
+perfectly fine just like predicate methods ending in "?".
+
 ### Calling a method on a closed ractorized object might result in a deadlock!
 
 It will usually raise a `Ractor::CloseError` but once in a while it can deadlock.
