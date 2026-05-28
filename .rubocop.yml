@@ -25,3 +25,6 @@ Style/DoubleNegation:
 
 Naming/MethodParameterName:
   Enabled: false
+
+RSpec/DescribedClass:
+  Enabled: false

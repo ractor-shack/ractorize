@@ -1,4 +1,16 @@
 RSpec.describe Ractorize do
+  def self.move_string_args
+    before do
+      old_to_move = described_class.instance_variable_get(:@to_move).dup
+
+      begin
+        described_class.move_arg(String)
+      ensure
+        described_class.instance_variable_set(:@to_move, old_to_move)
+      end
+    end
+  end
+
   let(:doubler_class) do
     stub_class("Doubler") do
       class << self
@@ -48,6 +60,8 @@ RSpec.describe Ractorize do
       end
 
       context "when passing non-shareable keyword args" do
+        move_string_args
+
         let(:klass) do
           stub_class("Foo") do
             def foo(bar:) = bar
@@ -83,7 +97,9 @@ RSpec.describe Ractorize do
         end
       end
 
-      context "when creating an instance with non-shareable args" do
+      context "when creating an instance with to-move args" do
+        move_string_args
+
         let(:args) { ["foo"] }
         let(:klass) do
           stub_class("Foo") do

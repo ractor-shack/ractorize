@@ -12,32 +12,34 @@ module Ractorize
 
         outside_object = args.first
 
-        ::Ractorize.resolve_all_thunks(outside_object)
+        @__target_class__ = outside_object.class
 
         if ::Ractor.shareable?(outside_object)
           @ractor << outside_object
         else
+          ::Ractorize.resolve_all_thunks(outside_object)
           @ractor.send(outside_object, move: true)
         end
       when :class
         klass, *args = args
 
-        ::Ractorize.resolve_all_thunks(args)
-        ::Ractorize.resolve_all_thunks(opts)
+        @__target_class__ = klass
 
-        if args.any? { !::Ractor.shareable?(it) } || opts.values.any? { !::Ractor.shareable?(it) }
+        to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
+
+        if to_move&.any?
           @ractor << :class_arg_by_arg
           @ractor << klass
 
           args.each do |arg|
             @ractor << :arg
-            @ractor.send(arg, move: !::Ractor.shareable?(arg))
+            @ractor.send(arg, move: to_move.include?(arg))
           end
 
           opts.each_pair do |name, value|
             @ractor << :kwarg
             @ractor << name
-            @ractor.send(value, move: !::Ractor.shareable?(value))
+            @ractor.send(value, move: to_move.include?(value))
           end
 
           if block
@@ -75,10 +77,9 @@ module Ractorize
 
       return_port = ::Ractor::Port.new
 
-      ::Ractorize.resolve_all_thunks(args)
-      ::Ractorize.resolve_all_thunks(opts)
+      to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
 
-      if args.any? { !::Ractor.shareable?(it) } || opts.values.any? { !::Ractor.shareable?(it) }
+      if to_move&.any?
         @ractor << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, !!block]
 
         args_port = return_port.receive
@@ -86,13 +87,13 @@ module Ractorize
 
         args.each do |arg|
           args_port << :arg
-          args_port.send(arg, move: !::Ractor.shareable?(arg))
+          args_port.send(arg, move: to_move.include?(arg))
         end
 
         opts.each_pair do |name, value|
           args_port << :kwarg
           args_port << name
-          args_port.send(value, move: !::Ractor.shareable?(value))
+          args_port.send(value, move: to_move.include?(value))
         end
 
         args_port << :done

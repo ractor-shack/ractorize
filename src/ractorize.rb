@@ -4,6 +4,54 @@ require_relative "ractorize/ractorized_class"
 
 module Ractorize
   class << self
+    def auto_freeze(target, class_or_proc = nil)
+      @auto_freeze = @auto_freeze ? @auto_freeze.dup : []
+
+      unless Ractor.shareable?(target)
+        # :nocov:
+        raise "#{target} isn't shareable so can't use it to auto-freeze"
+        # :nocov:
+      end
+
+      @auto_freeze << if class_or_proc
+                        unless Ractor.shareable?(class_or_proc)
+                          # :nocov:
+                          raise "#{class_or_proc} isn't shareable so can't use it to auto-freeze"
+                          # :nocov:
+                        end
+
+                        [target, class_or_proc]
+                      else
+                        target
+                      end
+
+      @auto_freeze.freeze
+    end
+
+    def move_arg(target, class_or_proc = nil)
+      @move_arg = @move_arg ? @move_arg.dup : []
+
+      unless Ractor.shareable?(target)
+        # :nocov:
+        raise "#{target} isn't shareable so can't use it to auto-freeze"
+        # :nocov:
+      end
+
+      @move_arg << if class_or_proc
+                     unless Ractor.shareable?(class_or_proc)
+                       # :nocov:
+                       raise "#{class_or_proc} isn't shareable so can't use it to auto-freeze"
+                       # :nocov:
+                     end
+
+                     [target, class_or_proc]
+                   else
+                     target
+                   end
+
+      @move_arg.freeze
+    end
+
     def any_thunks?(structure)
       # rubocop:disable Lint/UnreachableLoop
       each_thunk(structure) { return true }
@@ -15,6 +63,87 @@ module Ractorize
     # Not sure why that is but we need to handle that case.
     def resolve_all_thunks(structure)
       each_thunk(structure, &:__value__)
+    end
+
+    def to_move(target_class, args)
+      return unless @move_arg
+
+      move_set = nil
+
+      args.each do |arg|
+        next if Ractor.shareable?(arg)
+
+        @move_arg.each do |rule|
+          if rule.is_a?(::Array)
+            target, rule = rule
+            next unless target == target_class
+          end
+
+          move_it = if rule.is_a?(::Proc)
+                      rule.call(arg)
+                    else
+                      rule === arg
+                    end
+
+          if move_it
+            move_set ||= Set.new
+            move_set << arg
+            break
+          end
+        end
+      end
+
+      move_set
+    end
+
+    def apply_auto_freeze(target_class, arg)
+      return unless @auto_freeze
+      return if Ractor.shareable?(arg)
+
+      # TODO: should we handle instance variables like we do with thunks?
+      case arg
+      when ::Hash
+        arg.each_pair do |key, value|
+          apply_auto_freeze(target_class, key)
+          apply_auto_freeze(target_class, value)
+        end
+      when ::Array
+        arg.each { apply_auto_freeze(target_class, it) }
+      end
+
+      return if Ractor.shareable?(arg)
+
+      @auto_freeze.each do |rule|
+        if rule.is_a?(::Array)
+          target, rule = rule
+          next unless target == target_class
+        end
+
+        freeze_it = if rule.is_a?(::Proc)
+                      rule.call(arg)
+                    else
+                      rule === arg
+                    end
+
+        if freeze_it
+          arg.freeze
+          break
+        end
+      end
+    end
+
+    def prepare_args(target_class, args, opts, skip_move: false)
+      unless opts.empty?
+        args = [*args, *opts.values]
+      end
+
+      args.each { apply_auto_freeze(target_class, it) }
+
+      ::Ractorize.resolve_all_thunks(args)
+
+      return nil if skip_move
+
+      to_move(target_class, args)
     end
 
     def each_thunk(structure, seen = Set.new, &block)
@@ -80,11 +209,15 @@ module Ractorize
     object = case mode
              when :class
                klass, args, opts, block = receive
+               target_class = klass
                klass.new(*args.freeze, **opts.freeze, &block)
              when :object
-               receive
+               o = receive
+               target_class = o.class
+               o
              when :class_arg_by_arg
                klass = receive
+               target_class = klass
 
                args, opts, block = ::Ractorize.extract_args(self)
 
@@ -116,8 +249,7 @@ module Ractorize
           block_result_port = ::Ractor::Port.new
 
           value = object.__send__(method_name, *method_args, **opts) do |*args, **opts, &b|
-            ::Ractorize.resolve_all_thunks(args)
-            ::Ractorize.resolve_all_thunks(opts)
+            ::Ractorize.prepare_args(target_class, args, opts, skip_move: true)
 
             return_port << [:yield, [args.dup.freeze, opts.dup.freeze, b].freeze, block_result_port].freeze
 
