@@ -46,6 +46,22 @@ RSpec.describe Ractorize do
           expect(ractorized_10).to be_even
         end
       end
+
+      context "when passing non-shareable keyword args" do
+        let(:klass) do
+          stub_class("Foo") do
+            def foo(bar:) = bar
+          end
+        end
+        let(:ractorized_object) { described_class[klass.new] }
+
+        it "moves the args to the ractorized object" do
+          bar = "bar"
+
+          expect(ractorized_object.foo(bar:)).to eq("bar")
+          expect(Ractor::MovedObject === bar).to be true
+        end
+      end
     end
 
     context "when ractorizing a class" do
@@ -164,6 +180,32 @@ RSpec.describe Ractorize do
       expect(return_port.receive).to be(5)
       ractor_like_object.send([:__close__, [], {}, return_port])
       ractor_like_object.join
+    end
+
+    context "when invoking arg-by-arg" do
+      it "can still invoke the method" do
+        ractor_like_object.send(:object)
+        ractor_like_object.send(doubler)
+        return_port = Ractor::Port.new
+
+        ractor_like_object.send([:__invoke_arg_by_arg__, [], {}, return_port])
+        arg_port = return_port.receive
+        arg_port << :set
+        arg_port << :arg
+        arg_port << 5
+        arg_port << :done
+
+        return_port.receive
+
+        ractor_like_object.send([:__invoke_arg_by_arg__, [], {}, return_port])
+        arg_port = return_port.receive
+        arg_port << :get
+        arg_port << :done
+
+        expect(return_port.receive).to be(5)
+        ractor_like_object.send([:__close__, [], {}, return_port])
+        ractor_like_object.join
+      end
     end
 
     context "when target object is also ractorized" do

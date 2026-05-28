@@ -40,6 +40,36 @@ module Ractorize
         end
       end
     end
+
+    def extract_args(port_like)
+      args = []
+      opts = {}
+      block = nil
+
+      loop do
+        arg_type = port_like.__send__(:receive)
+
+        case arg_type
+        when :arg
+          args << port_like.__send__(:receive)
+        when :kwarg
+          name = port_like.__send__(:receive)
+          value = port_like.__send__(:receive)
+
+          opts[name] = value
+        when :block
+          block = port_like.__send__(:receive)
+        when :done
+          break
+        else
+          # :nocov:
+          ::Kernel.raise "Unknown class_by_arg arg type #{arg_type}"
+          # :nocov:
+        end
+      end
+
+      [args, opts, block]
+    end
   end
 
   # Putting this in a constant so we can get test coverage on it since not sure how to get coverage
@@ -56,31 +86,7 @@ module Ractorize
              when :class_arg_by_arg
                klass = receive
 
-               args = []
-               opts = {}
-               block = nil
-
-               loop do
-                 arg_type = receive
-
-                 case arg_type
-                 when :arg
-                   args << receive
-                 when :kwarg
-                   name = receive
-                   value = receive
-
-                   opts[name] = value
-                 when :block
-                   block = receive
-                 when :done
-                   break
-                 else
-                   # :nocov:
-                   ::Kernel.raise "Unknown class_by_arg arg type #{arg_type}"
-                   # :nocov:
-                 end
-               end
+               args, opts, block = ::Ractorize.extract_args(self)
 
                klass.new(*args.freeze, **opts.freeze, &block)
              else
@@ -98,8 +104,16 @@ module Ractorize
         close
         break
       else
+        if method_name == :__invoke_arg_by_arg__
+          args_port = Ractor::Port.new
+          return_port << args_port
+
+          method_name = args_port.receive
+          method_args, opts = ::Ractorize.extract_args(args_port)
+        end
+
         if block_given
-          block_result_port = Ractor::Port.new
+          block_result_port = ::Ractor::Port.new
 
           value = object.__send__(method_name, *method_args, **opts) do |*args, **opts, &b|
             ::Ractorize.resolve_all_thunks(args)
@@ -125,7 +139,7 @@ module Ractorize
         else
           value = object.__send__(method_name, *method_args, **opts)
 
-          value = value.__value__ while Thunk === value
+          value = value.__value__ while ::Ractorize::Thunk === value
 
           return_port << value
         end

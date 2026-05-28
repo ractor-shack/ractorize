@@ -78,7 +78,27 @@ module Ractorize
       ::Ractorize.resolve_all_thunks(args)
       ::Ractorize.resolve_all_thunks(opts)
 
-      @ractor << [method_name, args.dup.freeze, opts.dup.freeze, return_port, !!block].freeze
+      if args.any? { !::Ractor.shareable?(it) } || opts.values.any? { !::Ractor.shareable?(it) }
+        @ractor << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, !!block]
+
+        args_port = return_port.receive
+        args_port << method_name
+
+        args.each do |arg|
+          args_port << :arg
+          args_port.send(arg, move: !::Ractor.shareable?(arg))
+        end
+
+        opts.each_pair do |name, value|
+          args_port << :kwarg
+          args_port << name
+          args_port.send(value, move: !::Ractor.shareable?(value))
+        end
+
+        args_port << :done
+      else
+        @ractor << [method_name, args.dup.freeze, opts.dup.freeze, return_port, !!block].freeze
+      end
 
       if block
         stop = false
