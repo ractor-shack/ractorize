@@ -68,9 +68,160 @@ took 0.195 seconds
 $
 ```
 
+## Advanced usage/some niceties
+
+### Auto-freeze non-shareable stuff passed to ractorized objects/methods
+
+Not really in the mood to track down all the strings you're sending to your ractorized objects
+that happen to be non-shareable due to not being frozen? Or maybe you're in the mood
+but don't control the code where they are being initialized? You can just auto-freeze them!
+
+You can use `Ractorize.auto_freeze` for that.
+
+A few flavors:
+
+#### Auto-freezing any instance of a class
+
+Let's just freeze all strings sent to any ractorized object.
+
+```ruby
+Ractorize.auto_freeze(String)
+
+h = Ractorize[{}]
+
+key = "foo"
+value = "bar"
+
+puts "value frozen? #{value.frozen?}"
+h[key] = value
+puts "value frozen? #{value.frozen?}"
+```
+
+This results in:
+
+```
+key frozen? false value frozen? false
+key frozen? true value frozen? true
+```
+
+#### Only auto-freezing stuff passed to a specific type of ractorized object
+
+You can specify that auto-freezing should only apply to ractorized objects of a specific class.
+
+Let's say you want to freeze stuff passed to ractorized instances of Array but not interfere with
+anything ractorized instances of Hash might be doing. You can do this like so:
+
+```ruby
+Ractorize.auto_freeze(Array, String)
+
+h = Ractorize[{}]
+
+key = "foo"
+value = "bar"
+
+puts "Before Hash#[]= value frozen? #{value.frozen?}"
+h[key] = value
+puts "After Hash#[]= value frozen? #{value.frozen?}"
+
+a = Ractorize[[]]
+
+a.push(value)
+puts "After Array#push value frozen? #{value.frozen?}"
+```
+
+This prints out:
+
+```
+Before Hash#[]= value frozen? false
+After Hash#[]= value frozen? false
+After Array#push value frozen? true
+```
+
+So only sending the string to an Array resulted in auto-freezing it.
+
+#### programmatically expressing when to auto-freeze
+
+You can also pass a proc to express whether or not to autofreeze an object:
+
+```ruby
+Ractorize.auto_freeze(Ractor.shareable_proc { it.is_a?(String) && it =~ /baz/ })
+
+a = Ractorize[[]]
+
+strings = ["foo", "bar", "baz"]
+
+strings.each { a.push(it) }
+
+puts strings.map(&:frozen?).inspect
+```
+
+This outputs:
+
+```
+[false, false, true]
+```
+
+Notice that only the last string, which meets the criteria, was frozen.
+
+### How to move arguments to the receiving ractorized object
+
+You can express that you'd like an argument to be moved to the receiving ractorized object.
+
+This allows you to not have to worry about if the argument is shareable or not.
+
+You will get errors, though, when trying to make use of the moved argument in the calling
+code, just like when using ractors directly and moving objects between them.
+
+The interface is identical to `.auto_feeze` but through the method `.move_arg`:
+
+```ruby
+class Foo
+  def object_id_of(s) = s.object_id
+end
+
+foo = Ractorize[Foo.new]
+s = "asdf"
+
+puts "calling ractor s.object_id before #push: #{s.object_id}"
+puts "object_id in receiving ractor Foo#object_id_of: #{foo.object_id_of(s)}"
+puts "s.length in calling ractor: #{s.length}"
+puts
+
+puts "Configuring all String instances to be moved to receiving ractor"
+puts
+Ractorize.move_arg(String)
+
+puts "calling ractor s.object_id before #push: #{s.object_id}"
+puts "object_id in receiving ractor Foo#object_id_of: #{foo.object_id_of(s)}"
+puts "s.length in calling ractor: #{s.length}"
+```
+
+this outputs:
+
+```
+calling ractor s.object_id before #push: 896
+object_id in receiving ractor Foo#object_id_of: 904
+s.length in calling ractor: 4
+
+Configuring all String instances to be moved to receiving ractor
+
+calling ractor s.object_id before #push: 896
+object_id in receiving ractor Foo#object_id_of: 896
+example_scripts/auto_freeze/move-arg:25:in 'Ractor::MovedObject#method_missing': can not send any methods to a moved object (Ractor::MovedError)
+```
+
+Notice that before we configure String to be moved, `foo` receives a copy of `s`, hence the different
+object_id.
+
+But once we configure String to be moved, now `foo` receives `s` instead of a copy, hence the object_id
+being the same.
+
+However, then when we try to print out the length of `s` in the calling ractor, we get a `Ractor::MovedError`.
+
 ## Gotchas
 
-### Predicate methods not ending in "?" will always return truthy values!
+### Predicate methods not ending in "?" in `if/unless/until/while/case/when/in` statements will always return truthy values!
+
 If you try to use the return value of a ractorized object (or any instance of a ractorized class)
 in a boolean expression, it will always be truthy!!
 

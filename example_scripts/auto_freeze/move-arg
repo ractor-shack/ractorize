@@ -1,0 +1,25 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "ractorize"
+
+class Foo
+  def object_id_of(s) = s.object_id
+end
+
+foo = Ractorize[Foo.new]
+
+s = "asdf"
+
+puts "calling ractor s.object_id before #push: #{s.object_id}"
+puts "object_id in receiving ractor Foo#object_id_of: #{foo.object_id_of(s)}"
+puts "s.length in calling ractor: #{s.length}"
+puts
+
+puts "Configuring all String instances to be moved to receiving ractor"
+puts
+Ractorize.move_arg(String)
+
+puts "calling ractor s.object_id before #push: #{s.object_id}"
+puts "object_id in receiving ractor Foo#object_id_of: #{foo.object_id_of(s)}"
+puts "s.length in calling ractor: #{s.length}"

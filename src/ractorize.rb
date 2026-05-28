@@ -4,6 +4,7 @@ require_relative "ractorize/ractorized_class"
 
 module Ractorize
   class << self
+    # TODO: figure out a way to magically get a ractor-shareable proc from a non-ractor-shareable proc
     def auto_freeze(target, class_or_proc = nil)
       @auto_freeze = @auto_freeze ? @auto_freeze.dup : []
 

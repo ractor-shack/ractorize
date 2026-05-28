@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    ractorize (0.0.1)
+    ractorize (0.0.4)
 
 GEM
   remote: https://rubygems.org/
@@ -21,7 +21,7 @@ DEPENDENCIES
 CHECKSUMS
   benchmark (0.5.0) sha256=465df122341aedcb81a2a24b4d3bd19b6c67c1530713fd533f3ff034e419236c
   bigdecimal (4.1.2) sha256=53d217666027eab4280346fba98e7d5b66baaae1b9c3c1c0ffe89d48188a3fbd
-  ractorize (0.0.1)
+  ractorize (0.0.4)
 
 BUNDLED WITH
   4.0.10

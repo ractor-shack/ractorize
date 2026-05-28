@@ -1,0 +1,15 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "ractorize"
+
+Ractorize.auto_freeze(Ractor.shareable_proc { it.is_a?(String) && it =~ /baz/ })
+
+a = Ractorize[[]]
+
+strings = ["foo", "bar", "baz"]
+
+strings.each { a.push(it) }
+
+puts strings.map(&:frozen?).inspect
+puts a.inspect

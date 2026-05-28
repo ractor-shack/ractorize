@@ -1,0 +1,24 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "ractorize"
+
+# Let's freeze any strings sent to a ractorized Array but not other classes
+# TODO: make interface more self-documenting
+Ractorize.auto_freeze(Array, String)
+
+h = Ractorize[{}]
+
+key = "foo"
+value = "bar"
+
+puts "Before Hash#[]= value frozen? #{value.frozen?}"
+h[key] = value
+puts "After Hash#[]= value frozen? #{value.frozen?}"
+
+a = Ractorize[[]]
+
+a.push(value)
+puts "After Array#push value frozen? #{value.frozen?}"
+
+puts a.inspect

@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "ractorize"
+
+Ractorize.auto_freeze(String)
+
+h = Ractorize[{}]
+
+key = "foo"
+value = "bar"
+
+puts "key frozen? #{key.frozen?} value frozen? #{value.frozen?}"
+h[key] = value
+puts "key frozen? #{key.frozen?} value frozen? #{value.frozen?}"
+
+puts "h[#{key.inspect}] is #{h[key].inspect}"
+puts "h is #{h.inspect}"
