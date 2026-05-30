@@ -28,7 +28,8 @@ module Ractorize
                 __return_value_port__.receive
               else
                 # :nocov:
-                raise "Somehow this thunk was passed between ractors but wasn't resolved first."
+                ::Kernel.raise EscapingRactorError,
+                               "Somehow this thunk was passed between ractors but wasn't resolved first."
                 # :nocov:
               end
 
@@ -43,12 +44,9 @@ module Ractorize
       value
     end
 
-    def !
-      !__value__
-    end
-
-    def ==(other)
-      __value__ == other || super
-    end
+    def ! = !__value__
+    def ==(other) = __value__ == other || super
+    def !=(other) = __value__ != other || super
+    def equal?(other) = __value__.equal?(other) || super
   end
 end

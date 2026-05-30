@@ -1,3 +1,9 @@
+## [0.0.5] - 2026-05-30
+
+- Support auto-freezing certain method-arguments
+- Support moving method arguments if they are not shareable
+- Give ractors a name to help with debugging
+
 ## [0.0.4] - 2026-05-23
 
 - Prevent thunks from crossing ractor boundaries
