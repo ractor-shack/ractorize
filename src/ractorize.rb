@@ -220,12 +220,12 @@ module Ractorize
                klass = receive
                target_class = klass
 
-               args, opts, block = ::Ractorize.extract_args(self)
+               args, opts, block = Ractorize.extract_args(self)
 
                klass.new(*args.freeze, **opts.freeze, &block)
              else
                # :nocov:
-               ::Kernel.raise "Invalid mode #{mode}"
+               raise "Invalid mode #{mode}"
                # :nocov:
              end
 
@@ -243,14 +243,14 @@ module Ractorize
           return_port << args_port
 
           method_name = args_port.receive
-          method_args, opts = ::Ractorize.extract_args(args_port)
+          method_args, opts = Ractorize.extract_args(args_port)
         end
 
         if block_given
-          block_result_port = ::Ractor::Port.new
+          block_result_port = Ractor::Port.new
 
           value = object.__send__(method_name, *method_args, **opts) do |*args, **opts, &b|
-            ::Ractorize.prepare_args(target_class, args, opts, skip_move: true)
+            Ractorize.prepare_args(target_class, args, opts, skip_move: true)
 
             return_port << [:yield, [args.dup.freeze, opts.dup.freeze, b].freeze, block_result_port].freeze
 
@@ -263,7 +263,7 @@ module Ractorize
               break return_value
             else
               # :nocov:
-              ::Kernel.raise "Not sure how to handle outcome_type #{outcome_type}"
+              raise "Not sure how to handle outcome_type #{outcome_type}"
               # :nocov:
             end
           end
@@ -271,8 +271,8 @@ module Ractorize
           return_port << [:return, value].freeze
         else
           value = object.__send__(method_name, *method_args, **opts)
+          value = value.__value__ while Ractorize::Thunk === value
 
-          value = value.__value__ while ::Ractorize::Thunk === value
 
           return_port << value
         end
@@ -282,10 +282,10 @@ module Ractorize
     object
   rescue => e
     # :nocov:
-    ::Kernel.puts
-    ::Kernel.puts "an error!!! #{e.class} #{e.message} #{e}"
-    ::Kernel.puts e.backtrace
-    ::Kernel.puts
+    puts
+    puts "an unhandled error!!! #{e.class} #{e.message} #{e}"
+    puts e.backtrace
+    puts
 
     raise
     # :nocov:
