@@ -1,3 +1,7 @@
+## [0.0.7] - 2026-06-06
+
+- Closed Ractor::Ports sometimes give IOError instead of Ractor::ClosedError so handle both
+
 ## [0.0.6] - 2026-06-06
 
 - Fix a bug where a closed port mysteriously breaks out of Kernel#loop

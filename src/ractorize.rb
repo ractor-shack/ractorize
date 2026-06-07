@@ -275,6 +275,12 @@ module Ractorize
 
           begin
             return_port.send(value)
+          rescue IOError => e
+            # Unclear why this sometimes manifests as this error instead of ClosedError but
+            # need to handle them both.
+            # :nocov:
+            raise unless e.message == "closed stream"
+            # :nocov:
           rescue Ractor::ClosedError
             # Whoa... this error inherits from StopIteration and will kill the loop!!!
             # Nothing really to do here but keep the loop going and handle other
