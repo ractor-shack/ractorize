@@ -1,3 +1,7 @@
+## [0.0.6] - 2026-06-06
+
+- Fix a bug where a closed port mysteriously breaks out of Kernel#loop
+
 ## [0.0.5] - 2026-05-30
 
 - Support auto-freezing certain method-arguments

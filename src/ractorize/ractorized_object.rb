@@ -72,7 +72,8 @@ module Ractorize
     def method_missing(method_name, *args, **opts, &block)
       if @ractor.default_port.closed?
         ::Kernel.raise ::Ractor::ClosedError,
-                       "You already closed this Ractorized object! No more methods can be sent to it."
+                       "You already closed this Ractorized instance of #{@__target_class__}!\n" \
+                       "No more methods can be sent to it but you sent #{method_name}"
       end
 
       return_port = ::Ractor::Port.new

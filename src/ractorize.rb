@@ -273,8 +273,13 @@ module Ractorize
           value = object.__send__(method_name, *method_args, **opts)
           value = value.__value__ while Ractorize::Thunk === value
 
-
-          return_port << value
+          begin
+            return_port.send(value)
+          rescue Ractor::ClosedError
+            # Whoa... this error inherits from StopIteration and will kill the loop!!!
+            # Nothing really to do here but keep the loop going and handle other
+            # method calls to the ractorized object from other ractors.
+          end
         end
       end
     end
