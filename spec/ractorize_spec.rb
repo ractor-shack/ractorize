@@ -398,29 +398,7 @@ RSpec.describe Ractorize do
 
             def initialize = self.inner = Ractorize[Inner].new
             def foo = inner.foo
-
-            def length
-              sleep 1
-
-              klass_m = Object.instance_method(:class)
-
-              i = inner
-
-              puts "inner is thunk: #{klass_m.bind_call(i) == Ractorize::Thunk}"
-              puts "inner is ractorized object: #{klass_m.bind_call(i) == Ractorize::RactorizedObject}"
-
-              f = i.foo
-
-              puts "foo is thunk: #{klass_m.bind_call(f) == Ractorize::Thunk}"
-              puts "foo is ractorized object: #{klass_m.bind_call(f) == Ractorize::RactorizedObject}"
-
-              l = f.length
-
-              puts "length is thunk: #{klass_m.bind_call(f) == Ractorize::Thunk}"
-              puts "length is ractorized object: #{klass_m.bind_call(f) == Ractorize::RactorizedObject}"
-
-              l
-            end
+            def length = inner.foo.length
           end
         end
 

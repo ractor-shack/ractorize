@@ -28,16 +28,15 @@ class GlobalVariable
       value = nil
 
       loop do
-        return_port = receive
-        method = receive
+        method_info = receive
 
-        case method
-        when :set
-          value = receive
-        when :get
-          # don't need to do anything
+        case method_info
+        in :set, return_port, value
+          # nothing to do...
+        in :get, return_port
+          # nothing to do...
         else
-          raise "invalid method #{method}"
+          raise "invalid method info #{method_info}"
         end
 
         return_port << value
@@ -50,8 +49,7 @@ class GlobalVariable
   def get
     p = Ractor::Port.new
 
-    @ractor << p
-    @ractor << :get
+    @ractor << [:get, p].freeze
 
     p.receive
   end
@@ -59,9 +57,7 @@ class GlobalVariable
   def set(value)
     p = Ractor::Port.new
 
-    @ractor << p
-    @ractor << :set
-    @ractor << value
+    @ractor << [:set, p, value].freeze
 
     p.receive
   end
