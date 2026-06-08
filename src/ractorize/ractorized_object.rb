@@ -137,23 +137,11 @@ module Ractorize
             method_name == :inspect || method_name == :to_s || method_name.end_with?("?")
         value = return_port.receive
 
-        ::Kernel.puts "forcing resolve in ractorized object"
         value = value.__value__ while ::Ractorize::Thunk === value
       else
         value = Thunk.new(return_port)
 
-        ::Kernel.puts "thunk built in ractorized object for #{method_name} on #{@__target_class__}"
-
-        if method_name == :length
-          ::ThunkId.set(::Object.instance_method(:object_id).bind_call(value))
-
-          ::Kernel.puts "Just set thunk id to #{::ThunkId.get}"
-        end
-
-        while Thunk === value && value.resolved?
-          ::Kernel.puts "rsolving with __value__ in ractorized_object"
-          value = value.__value__
-        end
+        value = value.__value__ while Thunk === value && value.resolved?
       end
 
       value

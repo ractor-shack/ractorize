@@ -147,10 +147,8 @@ module Ractorize
       args.each { apply_auto_freeze(target_class, it) }
 
       if port
-        puts "will chain in prepare_args"
         ::Ractorize.chain_all_thunks(args, port)
       else
-        puts "will resolve  in prepare_args"
         ::Ractorize.resolve_all_thunks(args)
       end
 
@@ -288,25 +286,7 @@ module Ractorize
 
           begin
             if Ractorize::Thunk === value
-              if method_name == :length
-                puts "have a thunk in ractorize from object.__send__"
-                puts "thunk's object_id is: #{Object.instance_method(:object_id).bind_call(value)}"
-                puts "and here it is chained? #{value.chained?}"
-                puts "ThunkId is #{ThunkId.get}"
-              end
-
-              puts "value is chained before? #{value.chained?}"
-              # puts "chaining for an instance of #{Object.instance_method(:class).bind_call(value)}!" \
-              #      "it was received via a call to #{target_class}##{method_name}"
               value = value.chain(return_port)
-
-              puts "value is still a thunk? #{Ractorize::Thunk === value}"
-              puts "value is chained after? #{value.chained?} for " \
-                   "an instance of #{Object.instance_method(:class).bind_call(value)}!" \
-                   "it was received via a call to #{target_class}##{method_name}"
-
-            else
-              puts "not chaining for #{Object.instance_method(:class).bind_call(value)}!"
             end
 
             return_port.send(value)

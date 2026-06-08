@@ -115,7 +115,6 @@ module Ractorize
     # TODO: can we make this method return a thunk?? Or maybe take/return a thunk? Would be cleaner
     # interface-wise I think.
     def chain(port)
-      ::Kernel.puts "chaining!! resolved is: #{resolved?} and chained is: #{chained?}"
       return __value__ if resolved?
 
       m = __mutex__
@@ -144,7 +143,6 @@ module Ractorize
         m&.unlock
       end
 
-      ::Kernel.puts "returning self"
       self
     end
 
@@ -157,10 +155,6 @@ module Ractorize
     end
 
     def __value__
-      if ::ThunkId.get == ::Object.instance_method(:object_id).bind_call(self)
-        ::Kernel.puts "__value__ called on target thunk!!"
-      end
-
       m = __mutex__
       m&.lock
 

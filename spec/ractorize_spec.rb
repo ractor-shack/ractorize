@@ -411,17 +411,12 @@ RSpec.describe Ractorize do
         it "chains the thunk to work across ractors" do
           outer = described_class[outer_class].new
 
-          puts "shouldn't sleep..."
           thunk = outer.length
 
           expect(Ractorize::Thunk === thunk).to be true
-          puts "got lenght thunk with object id of #{Object.instance_method(:object_id).bind_call(thunk)}"
-          puts "ThunkId.get is #{ThunkId.get}"
 
           expect(thunk.resolved?).to be_falsey
-          puts "should sleep"
           expect(thunk).to eq(4)
-          puts "done sleeping"
           expect(thunk.class).to eq(Integer)
           expect(thunk.__value__).to be(4)
 
