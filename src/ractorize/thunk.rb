@@ -27,19 +27,22 @@ module Ractorize
 
       begin
         if @value_ractor
-          Thread.new { port << @value_ractor.join.value }
+          ::Thread.new { port << @value_ractor.join.value }
         else
-          @value_ractor = Ractor.new do
+          @value_ractor = ::Ractor.new do
             # make sure we block until the @value_ractor instance variable has had a chance to be set
-            # and for good measure until we are locked down and therefore "shareable"
-            port = receive
-            value = __return_value_port__.receive
-            port << value
+            # and for good measure until we are locked down and therefore "shareable".
+            # Sending the port via #<< from outside accomplishes this.
+            p = receive
+            value = receive
+            p << value
             value
           end
 
+          thread_port = __return_value_port__
           lockdown
           @value_ractor << port
+          ::Thread.new { @value_ractor << thread_port.receive }
         end
       ensure
         m&.unlock
@@ -83,6 +86,10 @@ module Ractorize
       m&.unlock
     end
 
+    def resolved?
+      defined?(@__value__) || @value_ractor&.default_port&.closed?
+    end
+
     def ! = !__value__
     def ==(other) = __value__ == other || super
     def !=(other) = __value__ != other || super
@@ -95,7 +102,8 @@ module Ractorize
     # @value_ractor.
     def lockdown
       m = __mutex__
-      m&.lock unless m&.owned?
+      m = nil if m&.owned?
+      m&.lock
 
       if defined?(@__value__)
         @value_ractor &&= nil
@@ -116,11 +124,11 @@ module Ractorize
     def __mutex__
       return @__mutex__ if defined?(@__mutex__)
 
-      @__mutex__ = Mutex.new
+      @__mutex__ = ::Mutex.new
     end
 
-    def resolved?
-      defined?(@__value__) || @value_ractor&.default_port&.closed?
+    def chained?
+      !!@value_ractor
     end
   end
 end

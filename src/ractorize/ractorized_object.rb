@@ -139,13 +139,15 @@ module Ractorize
             method_name == :inspect || method_name == :to_s || method_name.end_with?("?")
         value = return_port.receive
 
-        # :nocov:
-        ::Kernel.raise ::Ractorize::Thunk::EscapingRactorError if ::Ractorize::Thunk === value
-        # :nocov:
+        value = value.__value__ while ::Ractorize::Thunk === value
 
         value
       else
-        Thunk.new(return_port)
+        value = Thunk.new(return_port)
+
+        value = value.__value__ while Thunk === value && value.resolved?
+
+        value
       end
     end
 
