@@ -271,9 +271,13 @@ module Ractorize
           return_port << [:return, value].freeze
         else
           value = object.__send__(method_name, *method_args, **opts)
-          value = value.__value__ while Ractorize::Thunk === value
+          # value = value.__value__ while Ractorize::Thunk === value
 
           begin
+            if Ractorize::Thunk === value
+              value = value.chain(return_port)
+            end
+
             return_port.send(value)
           rescue IOError => e
             # Unclear why this sometimes manifests as this error instead of ClosedError but

@@ -77,11 +77,14 @@ module Ractorize
       end
 
       return_port = ::Ractor::Port.new
+      block_yield_port = if block
+                           ::Ractor::Port.new
+                         end
 
       to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
 
       if to_move&.any?
-        @ractor << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, !!block]
+        @ractor << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, block_yield_port]
 
         args_port = return_port.receive
         args_port << method_name
@@ -99,7 +102,7 @@ module Ractorize
 
         args_port << :done
       else
-        @ractor << [method_name, args.dup.freeze, opts.dup.freeze, return_port, !!block].freeze
+        @ractor << [method_name, args.dup.freeze, opts.dup.freeze, return_port, block_yield_port].freeze
       end
 
       if block
