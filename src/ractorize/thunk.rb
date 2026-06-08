@@ -128,10 +128,12 @@ module Ractorize
             # make sure we block until the @value_ractor instance variable has had a chance to be set
             # and for good measure until we are locked down and therefore "shareable".
             # Sending the port via #<< from outside accomplishes this.
+            # :nocov:
             p = receive
             value = receive
             p << value
             value
+            # :nocov:
           end
 
           thread_port = __return_value_port__
