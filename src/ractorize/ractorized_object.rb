@@ -131,8 +131,6 @@ module Ractorize
             block_result_port << [:normal, block_result].freeze
           end
         end
-
-        value
       # Let's assume the user would rather block on all predicate methods than
       # incorrectly get a non-truthy value (thunk is always truthy even if it evaluates as nil/false)
       elsif method_name == :== || method_name == :! || method_name == :!= ||
