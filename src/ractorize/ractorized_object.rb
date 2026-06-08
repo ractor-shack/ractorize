@@ -137,6 +137,7 @@ module Ractorize
             method_name == :inspect || method_name == :to_s || method_name.end_with?("?")
         value = return_port.receive
 
+        ::Kernel.puts "forcing resolve in ractorized object"
         value = value.__value__ while ::Ractorize::Thunk === value
       else
         value = Thunk.new(return_port)
