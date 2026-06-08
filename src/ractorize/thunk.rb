@@ -1,3 +1,5 @@
+# TODO: move to another gem
+# :nocov:
 class Counter
   def initialize
     @ractor = Ractor.new do
@@ -88,6 +90,8 @@ end
 
 Ractor.prepend(LeakyThunkDetection)
 Ractor::Port.prepend(LeakyThunkDetection)
+
+# :nocov:
 
 module Ractorize
   class Thunk < BasicObject
