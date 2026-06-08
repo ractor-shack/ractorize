@@ -25,7 +25,7 @@ module Ractorize
 
         @__target_class__ = klass
 
-        to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
+        to_move = ::Ractorize.prepare_args(@__target_class__, args, opts, nil)
 
         if to_move&.any?
           @ractor << :class_arg_by_arg
@@ -81,7 +81,7 @@ module Ractorize
                            ::Ractor::Port.new
                          end
 
-      to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
+      to_move = ::Ractorize.prepare_args(@__target_class__, args, opts, return_port)
 
       if to_move&.any?
         @ractor << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, block_yield_port]
@@ -141,7 +141,12 @@ module Ractorize
       else
         value = Thunk.new(return_port)
 
-        value = value.__value__ while Thunk === value && value.resolved?
+        ::Kernel.puts "thunk built in ractorized object for #{method_name} on #{@__target_class__}"
+
+        while Thunk === value && value.resolved?
+          ::Kernel.puts "rsolving with __value__ in ractorized_object"
+          value = value.__value__
+        end
       end
 
       value

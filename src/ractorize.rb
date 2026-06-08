@@ -63,7 +63,17 @@ module Ractorize
     # Unfortunately, can't read from a port that a different ractor made.
     # Not sure why that is but we need to handle that case.
     def resolve_all_thunks(structure)
+      if CounterInstance.inc >= 4
+        raise "yay!"
+      end
+
       each_thunk(structure, &:__value__)
+    end
+
+    def chain_all_thunks(structure, port)
+      each_thunk(structure) do |thunk|
+        thunk.chain(port)
+      end
     end
 
     def to_move(target_class, args)
@@ -133,14 +143,20 @@ module Ractorize
       end
     end
 
-    def prepare_args(target_class, args, opts, skip_move: false)
+    def prepare_args(target_class, args, opts, port, skip_move: false)
       unless opts.empty?
         args = [*args, *opts.values]
       end
 
       args.each { apply_auto_freeze(target_class, it) }
 
-      ::Ractorize.resolve_all_thunks(args)
+      if port
+        puts "will chain in prepare_args"
+        ::Ractorize.chain_all_thunks(args, port)
+      else
+        puts "will resolve  in prepare_args"
+        ::Ractorize.resolve_all_thunks(args)
+      end
 
       return nil if skip_move
 
@@ -250,7 +266,8 @@ module Ractorize
           block_result_port = Ractor::Port.new
 
           value = object.__send__(method_name, *method_args, **opts) do |*args, **opts, &b|
-            Ractorize.prepare_args(target_class, args, opts, skip_move: true)
+            # TODO: chain instead!
+            Ractorize.prepare_args(target_class, args, opts, block_result_port, skip_move: true)
 
             return_port << [:yield, [args.dup.freeze, opts.dup.freeze, b].freeze, block_result_port].freeze
 
@@ -275,7 +292,18 @@ module Ractorize
 
           begin
             if Ractorize::Thunk === value
+              puts "value is chained before? #{value.chained?}"
+              # puts "chaining for an instance of #{Object.instance_method(:class).bind_call(value)}!" \
+              #      "it was received via a call to #{target_class}##{method_name}"
               value = value.chain(return_port)
+
+              puts "value is still a thunk? #{Ractorize::Thunk === value}"
+              puts "value is chained after? #{value.chained?} for  " \
+                   "an instance of #{Object.instance_method(:class).bind_call(value)}!" \
+                   "it was received via a call to #{target_class}##{method_name}"
+
+            else
+              puts "not chaining for #{Object.instance_method(:class).bind_call(value)}!"
             end
 
             return_port.send(value)
@@ -284,11 +312,14 @@ module Ractorize
             # need to handle them both.
             # :nocov:
             raise unless e.message == "closed stream"
-            # :nocov:
+          # :nocov:
           rescue Ractor::ClosedError
             # Whoa... this error inherits from StopIteration and will kill the loop!!!
             # Nothing really to do here but keep the loop going and handle other
             # method calls to the ractorized object from other ractors.
+          rescue => e
+            puts "whoa, didn't handle #{e}!!"
+            puts e.backtrace
           end
         end
       end

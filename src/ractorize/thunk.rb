@@ -1,3 +1,52 @@
+class Counter
+  def initialize
+    @ractor = Ractor.new do
+      count = 0
+
+      loop do
+        return_port = receive
+
+        count += 1
+        return_port << count
+      end
+    end
+
+    freeze
+  end
+
+  def inc
+    p = Ractor::Port.new
+
+    @ractor << p
+    p.receive
+  end
+end
+
+CounterInstance = Counter.new
+
+module LeakyThunkDetection
+  def send(object, ...)
+    raise_if_leaked_thunk(object)
+    super
+  end
+
+  def <<(object, ...)
+    raise_if_leaked_thunk(object)
+    super
+  end
+
+  def raise_if_leaked_thunk(thunk)
+    if Ractorize::Thunk === thunk
+      unless thunk.resolved? || thunk.chained?
+        raise "leaking a thunk from here"
+      end
+    end
+  end
+end
+
+Ractor.prepend(LeakyThunkDetection)
+Ractor::Port.prepend(LeakyThunkDetection)
+
 module Ractorize
   class Thunk < BasicObject
     class EscapingRactorError < ::StandardError; end
@@ -20,6 +69,7 @@ module Ractorize
     # TODO: can we make this method return a thunk?? Or maybe take/return a thunk? Would be cleaner
     # interface-wise I think.
     def chain(port)
+      ::Kernel.puts "chaining!! resolved is: #{resolved?} and chained is: #{chained?}"
       return __value__ if resolved?
 
       m = __mutex__
@@ -48,7 +98,8 @@ module Ractorize
         m&.unlock
       end
 
-      Thunk.new(port)
+      ::Kernel.puts "returning self"
+      self
     end
 
     def method_missing(...)
@@ -90,6 +141,10 @@ module Ractorize
       defined?(@__value__) || @value_ractor&.default_port&.closed?
     end
 
+    def chained?
+      !!@value_ractor
+    end
+
     def ! = !__value__
     def ==(other) = __value__ == other || super
     def !=(other) = __value__ != other || super
@@ -125,10 +180,6 @@ module Ractorize
       return @__mutex__ if defined?(@__mutex__)
 
       @__mutex__ = ::Mutex.new
-    end
-
-    def chained?
-      !!@value_ractor
     end
   end
 end

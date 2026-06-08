@@ -398,7 +398,29 @@ RSpec.describe Ractorize do
 
             def initialize = self.inner = Ractorize[Inner].new
             def foo = inner.foo
-            def length = inner.foo.length
+
+            def length
+              sleep 1
+
+              klass_m = Object.instance_method(:class)
+
+              i = inner
+
+              puts "inner is thunk: #{klass_m.bind_call(i) == Ractorize::Thunk}"
+              puts "inner is ractorized object: #{klass_m.bind_call(i) == Ractorize::RactorizedObject}"
+
+              f = i.foo
+
+              puts "foo is thunk: #{klass_m.bind_call(f) == Ractorize::Thunk}"
+              puts "foo is ractorized object: #{klass_m.bind_call(f) == Ractorize::RactorizedObject}"
+
+              l = f.length
+
+              puts "length is thunk: #{klass_m.bind_call(f) == Ractorize::Thunk}"
+              puts "length is ractorized object: #{klass_m.bind_call(f) == Ractorize::RactorizedObject}"
+
+              l
+            end
           end
         end
 
@@ -408,8 +430,22 @@ RSpec.describe Ractorize do
           end
         end
 
-        it "resolves the inner thunk", :focus  do
+        it "chains the thunk to work across ractors", :focus do
           outer = described_class[outer_class].new
+
+          puts "shouldn't sleep..."
+          thunk = outer.length
+          puts "got lenght."
+
+          expect(Ractorize::Thunk === thunk).to be true
+          expect(thunk.resolved?).to be_falsey
+          puts "should sleep"
+          expect(thunk).to eq(4)
+          puts "done sleeping"
+          expect(thunk.chained?).to be true
+          expect(thunk.class).to eq(Integer)
+          expect(thunk.__value__).to be(4)
+
           expect(outer.inner.foo.length).to eq(4)
           expect(Ractorize::Thunk === outer.inner.foo.length).to be true
           expect(outer.inner).to be_a(Inner)
@@ -418,12 +454,14 @@ RSpec.describe Ractorize do
           expect(outer.length).to eq(4)
 
           value = outer.foo
+          expect(value.resolved?).to be_falsey
+          expect(value.chained?).to be_true
           expect(value.length).to eq(4)
           expect(value.class).to eq(String)
           expect(value).to eq("asdf")
           expect(Ractorize::Thunk === value).to be true
           expect(Ractorize::Thunk === value.length).to be true
-          expect(Ractorize::Thunk === value.__value__).to be false
+          expect(value.__value__).to eq("asdf")
         end
       end
     end
