@@ -302,6 +302,11 @@ module Ractorize
                    "an instance of #{Object.instance_method(:class).bind_call(value)}!" \
                    "it was received via a call to #{target_class}##{method_name}"
 
+              if method_name == :length
+                ThunkId.set(Object.instance_method(:object_id).bind_call(value))
+
+                puts "Just set thunk id to #{ThunkId.get}"
+              end
             else
               puts "not chaining for #{Object.instance_method(:class).bind_call(value)}!"
             end

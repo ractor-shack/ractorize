@@ -22,6 +22,52 @@ class Counter
   end
 end
 
+class GlobalVariable
+  def initialize
+    @ractor = Ractor.new do
+      value = nil
+
+      loop do
+        return_port = receive
+        method = receive
+
+        case method
+        when :set
+          value = receive
+        when :get
+          # don't need to do anything
+        else
+          raise "invalid method #{method}"
+        end
+
+        return_port << value
+      end
+    end
+
+    freeze
+  end
+
+  def get
+    p = Ractor::Port.new
+
+    @ractor << p
+    @ractor << :get
+
+    p.receive
+  end
+
+  def set(value)
+    p = Ractor::Port.new
+
+    @ractor << p
+    @ractor << :set
+    @ractor << value
+
+    p.receive
+  end
+end
+
+ThunkId = GlobalVariable.new
 CounterInstance = Counter.new
 
 module LeakyThunkDetection
@@ -111,6 +157,10 @@ module Ractorize
     end
 
     def __value__
+      if ::ThunkId.get == ::Object.instance_method(:object_id).bind_call(self)
+        ::Kernel.puts "__value__ called on target thunk!!"
+      end
+
       m = __mutex__
       m&.lock
 
