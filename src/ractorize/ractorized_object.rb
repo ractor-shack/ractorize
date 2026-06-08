@@ -144,6 +144,12 @@ module Ractorize
 
         ::Kernel.puts "thunk built in ractorized object for #{method_name} on #{@__target_class__}"
 
+        if method_name == :length
+          ::ThunkId.set(::Object.instance_method(:object_id).bind_call(value))
+
+          ::Kernel.puts "Just set thunk id to #{::ThunkId.get}"
+        end
+
         while Thunk === value && value.resolved?
           ::Kernel.puts "rsolving with __value__ in ractorized_object"
           value = value.__value__

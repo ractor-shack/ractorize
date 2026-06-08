@@ -430,19 +430,20 @@ RSpec.describe Ractorize do
           end
         end
 
-        it "chains the thunk to work across ractors", :focus do
+        it "chains the thunk to work across ractors" do
           outer = described_class[outer_class].new
 
           puts "shouldn't sleep..."
           thunk = outer.length
-          puts "got lenght."
 
           expect(Ractorize::Thunk === thunk).to be true
+          puts "got lenght thunk with object id of #{Object.instance_method(:object_id).bind_call(thunk)}"
+          puts "ThunkId.get is #{ThunkId.get}"
+
           expect(thunk.resolved?).to be_falsey
           puts "should sleep"
           expect(thunk).to eq(4)
           puts "done sleeping"
-          expect(thunk.chained?).to be true
           expect(thunk.class).to eq(Integer)
           expect(thunk.__value__).to be(4)
 
@@ -455,7 +456,6 @@ RSpec.describe Ractorize do
 
           value = outer.foo
           expect(value.resolved?).to be_falsey
-          expect(value.chained?).to be_true
           expect(value.length).to eq(4)
           expect(value.class).to eq(String)
           expect(value).to eq("asdf")

@@ -63,10 +63,6 @@ module Ractorize
     # Unfortunately, can't read from a port that a different ractor made.
     # Not sure why that is but we need to handle that case.
     def resolve_all_thunks(structure)
-      if CounterInstance.inc >= 4
-        raise "yay!"
-      end
-
       each_thunk(structure, &:__value__)
     end
 
@@ -292,21 +288,23 @@ module Ractorize
 
           begin
             if Ractorize::Thunk === value
+              if method_name == :length
+                puts "have a thunk in ractorize from object.__send__"
+                puts "thunk's object_id is: #{Object.instance_method(:object_id).bind_call(value)}"
+                puts "and here it is chained? #{value.chained?}"
+                puts "ThunkId is #{ThunkId.get}"
+              end
+
               puts "value is chained before? #{value.chained?}"
               # puts "chaining for an instance of #{Object.instance_method(:class).bind_call(value)}!" \
               #      "it was received via a call to #{target_class}##{method_name}"
               value = value.chain(return_port)
 
               puts "value is still a thunk? #{Ractorize::Thunk === value}"
-              puts "value is chained after? #{value.chained?} for  " \
+              puts "value is chained after? #{value.chained?} for " \
                    "an instance of #{Object.instance_method(:class).bind_call(value)}!" \
                    "it was received via a call to #{target_class}##{method_name}"
 
-              if method_name == :length
-                ThunkId.set(Object.instance_method(:object_id).bind_call(value))
-
-                puts "Just set thunk id to #{ThunkId.get}"
-              end
             else
               puts "not chaining for #{Object.instance_method(:class).bind_call(value)}!"
             end
