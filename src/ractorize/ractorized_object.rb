@@ -140,15 +140,13 @@ module Ractorize
         value = return_port.receive
 
         value = value.__value__ while ::Ractorize::Thunk === value
-
-        value
       else
         value = Thunk.new(return_port)
 
         value = value.__value__ while Thunk === value && value.resolved?
-
-        value
       end
+
+      value
     end
 
     def respond_to?(method_name, include_all = false)
