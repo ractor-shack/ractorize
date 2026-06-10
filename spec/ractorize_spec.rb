@@ -29,7 +29,7 @@ RSpec.describe Ractorize do
 
   describe ".[]" do
     context "when ractorizing an object" do
-      it "can be used through its normal interface", :focus do
+      it "can be used through its normal interface" do
         ractorized_doubler.set(5)
 
         expect(ractorized_doubler.get).to eq(5)
@@ -145,7 +145,7 @@ RSpec.describe Ractorize do
 
   describe "#__close__" do
     context "when calling it twice" do
-      it "is idempotent" do
+      it "raises a ClosedError" do
         ractorized_doubler.set(5)
         expect(ractorized_doubler.get).to eq(5)
         ractorized_doubler.double
