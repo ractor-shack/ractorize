@@ -1,6 +1,13 @@
 # TODO: make use of autoload?
 require_relative "ractorize/ractorized_object"
 require_relative "ractorize/ractorized_class"
+require "weakref"
+
+def whatever_finalizer_proc
+  proc do |id|
+    puts "closing wrapped object with id #{id} "
+  end
+end
 
 module Ractorize
   class << self
@@ -64,6 +71,7 @@ module Ractorize
     # Not sure why that is but we need to handle that case.
     def resolve_all_thunks(structure)
       each_thunk(structure, &:__value__)
+      nil
     end
 
     def to_move(target_class, args)
@@ -169,6 +177,7 @@ module Ractorize
           each_thunk(iget.bind(structure).call(var), seen, &block)
         end
       end
+      nil
     end
 
     def extract_args(port_like)
@@ -229,14 +238,33 @@ module Ractorize
                # :nocov:
              end
 
+    if Ractorize::Thunk === object
+      raise "wtf"
+    end
+
+    puts "wrapping #{object.object_id}"
+    ObjectSpace.define_finalizer(object, &whatever_finalizer_proc)
+
     loop do
+      method_name = method_args = opts = return_port = block_given = nil
+      puts "about to receive in ractor #{self}"
       method_name, method_args, opts, return_port, block_given = receive
+      puts "got #{method_name} in ractor #{self}"
 
       case method_name
       when :__close__
+        if Thunk === object
+          puts "closing and object is a thunk "
+        end
+        if RactorizedObject === object
+          puts "closing and object is a ractorized object"
+        end
+        puts "closing for object #{object}"
         return_port&.<<(object, move: true)
-        return_port = nil
+        method_name = method_args = opts = return_port = block_given = nil
         close
+        # Ractorize.resolve_all_thunks(object)
+        object = nil
         break
       else
         if method_name == :__invoke_arg_by_arg__
@@ -290,9 +318,11 @@ module Ractorize
           end
         end
       end
+    rescue => e
+      puts "WAIT WTF NOT HANDLED??? #{e}"
     end
 
-    object
+    # object
   rescue => e
     # :nocov:
     puts

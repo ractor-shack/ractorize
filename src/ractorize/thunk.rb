@@ -3,7 +3,7 @@
 module Ractorize
   class Thunk < BasicObject
     class << self
-      def setup_finalizer(garbage_collectable) # , port)
+      def setup_finalizer(garbage_collectable)
         # port_ref = WeakRef.new(port)
 
         ::ObjectSpace.define_finalizer(garbage_collectable) do |id|
@@ -20,12 +20,12 @@ module Ractorize
     def initialize(return_value_port)
       # self.__ractor__ = ::Ractor.current
       self.__return_value_port__ = return_value_port
-      garbage_collectable = ::Object.new
+      # garbage_collectable = ::Object.new
 
-       ::Ractorize::Thunk.setup_finalizer(garbage_collectable , return_value_port)
+      # ::Ractorize::Thunk.setup_finalizer(self) # , return_value_port)
 
-       garbage_collectable.freeze
-       @__garbage_collectable__ = garbage_collectable
+      # garbage_collectable.freeze
+      # @__garbage_collectable__ = garbage_collectable
     end
 
     def initialize_clone(...)
@@ -45,8 +45,11 @@ module Ractorize
     def __value__
       return @__value__ if defined?(@__value__)
 
+      ::Kernel.puts "calling receive on the port... #{__return_value_port__}"
       value = # if ::Ractor.current == __ractor__
         __return_value_port__.receive
+      ::Kernel.puts "value received... #{__return_value_port__}"
+
       # else
       #   # :nocov:
       #   ::Kernel.raise EscapingRactorError,

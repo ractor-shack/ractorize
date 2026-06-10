@@ -5,9 +5,17 @@ module Ractorize
   class RactorizedObject < BasicObject
     class << self
       def setup_finalizer_proc(ractor)
-        proc do
-          ractor << :__close__ unless ractor.default_port.closed?
+        proc do |id|
+          puts "finalizing a ractorized object with #{id} with ractor #{ractor}"
+          if ractor.default_port.closed?
+            puts "already closed so doing nothing"
+          else
+            puts "sending __close__"
+            ractor << :__close__
+            puts "sent __close__"
+          end
         rescue Ractor::ClosedError
+          puts "it raised ClosedError"
           # intentionally swallowing this up
         end
       end
