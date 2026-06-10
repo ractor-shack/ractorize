@@ -234,7 +234,8 @@ module Ractorize
 
       case method_name
       when :__close__
-        return_port.<<(object, move: true)
+        return_port&.<<(object, move: true)
+        return_port = nil
         close
         break
       else
@@ -275,6 +276,7 @@ module Ractorize
 
           begin
             return_port.send(value)
+            return_port = nil
           rescue IOError => e
             # Unclear why this sometimes manifests as this error instead of ClosedError but
             # need to handle them both.

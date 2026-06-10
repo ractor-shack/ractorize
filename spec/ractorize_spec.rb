@@ -29,13 +29,15 @@ RSpec.describe Ractorize do
 
   describe ".[]" do
     context "when ractorizing an object" do
-      it "can be used through its normal interface" do
+      it "can be used through its normal interface", :focus do
         ractorized_doubler.set(5)
+
         expect(ractorized_doubler.get).to eq(5)
         ractorized_doubler.double
         expect(ractorized_doubler.get).to eq(10)
         expect(ractorized_doubler.respond_to?(:set) == true).to be true
         expect(ractorized_doubler.respond_to?(:asdf) == true).to be false
+
         ractorized_doubler.__join__
       end
 

@@ -3,8 +3,24 @@ require_relative "thunk"
 
 module Ractorize
   class RactorizedObject < BasicObject
+    class << self
+      def setup_finalizer_proc(ractor)
+        proc do
+          puts "Ractorized object finalizer called! Yay!"
+          ractor << :__close__ unless ractor.default_port.closed?
+        rescue Ractor::ClosedError
+          # intentionally swallowing this up
+        end
+      end
+
+      def setup_finalizer(ractorized_object, ractor)
+        ObjectSpace.define_finalizer(ractorized_object, &setup_finalizer_proc(ractor))
+      end
+    end
+
     def initialize(mode, *args, **opts, &block)
       @ractor = ::Ractor.new(name: "#{args.first}<#{args.first.object_id}>", &RACTOR_PROC)
+      RactorizedObject.setup_finalizer(self, @ractor)
 
       case mode
       when :object
@@ -61,16 +77,25 @@ module Ractorize
       ::Object.instance_method(:freeze).bind(self).call
     end
 
-    def __close__ = method_missing(:__close__)
+    def __close__
+      if @ractor.default_port.closed?
+        @ractor.value
+      else
+        # hmmm can't undefine this on self since we are frozen.
+        # Do we really need to freeze our self? We won't be shareable if we're not frozen ugg.
+        # ::ObjectSpace.undefine_finalizer(self)
+        method_missing(:__close__)
+      end
+    end
 
     def __join__
-      __close__
+      object = __close__
       @ractor.join
-      self
+      object.__value__
     end
 
     def method_missing(method_name, *args, **opts, &block)
-      if @ractor.default_port.closed?
+      if @ractor.default_port.closed? && method_name != :__close__ && method_name != :__join__
         ::Kernel.raise ::Ractor::ClosedError,
                        "You already closed this Ractorized instance of #{@__target_class__}!\n" \
                        "No more methods can be sent to it but you sent #{method_name}"
@@ -129,6 +154,8 @@ module Ractorize
           end
         end
 
+        return_port.close
+
         value
       # Let's assume the user would rather block on all predicate methods than
       # incorrectly get a non-truthy value (thunk is always truthy even if it evaluates as nil/false)
@@ -136,6 +163,7 @@ module Ractorize
             method_name == :inspect || method_name == :to_s || method_name.end_with?("?")
         value = return_port.receive
 
+        return_port.close
         # :nocov:
         ::Kernel.raise ::Ractorize::Thunk::EscapingRactorError if ::Ractorize::Thunk === value
         # :nocov:
@@ -168,7 +196,11 @@ module Ractorize
 
     def inspect
       object_id = ::Object.instance_method(:object_id).bind(self).call
-      moved_object_inspect = method_missing(:inspect)
+      moved_object_inspect = if @ractor.default_port.closed?
+                               ::Object.instance_method(:object_id).bind_call(self)
+                             else
+                               method_missing(:inspect)
+                             end
 
       "RactorizedObject<#{object_id}>[#{moved_object_inspect}]".freeze
     end
