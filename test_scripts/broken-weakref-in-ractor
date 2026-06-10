@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+
+puts Ruby::VERSION
+
+require "weakref"
+
+Ractor.new { WeakRef.new("asdf") }.join

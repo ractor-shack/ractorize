@@ -1,0 +1,12 @@
+#!/usr/bin/env ruby
+
+class C
+  attr_accessor :foo
+
+  def initialize = self.foo = 100
+  INSTANCE = new.freeze
+end
+
+raise "not shareable!" unless Ractor.shareable?(C::INSTANCE)
+
+Ractor.new { puts C::INSTANCE.foo }.join

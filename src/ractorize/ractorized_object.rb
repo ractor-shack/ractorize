@@ -133,7 +133,8 @@ module Ractorize
       # Let's assume the user would rather block on all predicate methods than
       # incorrectly get a non-truthy value (thunk is always truthy even if it evaluates as nil/false)
       elsif method_name == :== || method_name == :! || method_name == :!= ||
-            method_name == :inspect || method_name == :to_s || method_name.end_with?("?")
+            method_name == :inspect || method_name == :to_s ||
+            method_name.end_with?("?") || method_name == :hash
         value = return_port.receive
 
         # :nocov:
@@ -159,11 +160,10 @@ module Ractorize
       method_missing(:respond_to?, method_name, include_all)
     end
 
-    def ==(other) = method_missing(:==, other)
-    def !=(other) = method_missing(:==, other)
+    def ==(other) = method_missing(:==, other) || super
+    def !=(other) = method_missing(:==, other) || super
     def ! = method_missing(:!)
-    def equal?(other) = method_missing(:equal?, other)
-
+    def equal?(other) = method_missing(:equal?, other) || super
     def to_s = inspect
 
     def inspect

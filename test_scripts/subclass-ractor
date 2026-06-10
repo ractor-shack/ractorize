@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+puts Ruby::VERSION
+
+class SubRactor < Ractor
+  attr_accessor :foo
+end
+
+SubRactor.new { puts foo }.join

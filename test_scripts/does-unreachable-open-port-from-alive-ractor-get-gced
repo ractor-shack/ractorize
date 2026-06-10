@@ -1,0 +1,102 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+# require "irb"
+require "timeout"
+
+def ractors_and_ports
+  ractors = []
+  ports = []
+
+  ObjectSpace.each_object do
+    case it
+    when Ractor
+      ractors << it
+    when Ractor::Port
+      ports << it
+    end
+  end
+
+  [ractors, ports]
+end
+
+def ractor_and_port_counts
+  total_ractor_count = 0
+  total_ractor_port_count = 0
+  open_ractor_count = 0
+  open_ractor_port_count = 0
+
+  ractors, ports = ractors_and_ports
+
+  ractors.each do
+    total_ractor_count += 1
+    open_ractor_count += 1 unless it.default_port.closed?
+  end
+  ports.each do
+    total_ractor_port_count += 1
+    open_ractor_port_count += 1 unless it.closed?
+  end
+
+  [total_ractor_count, open_ractor_count, total_ractor_port_count, open_ractor_port_count]
+end
+
+class C
+  def initialize(port)
+    @port = port
+    freeze
+  end
+end
+
+r = Ractor.new do
+  loop do
+    port = receive
+
+    case port
+    in Ractor::Port
+      pp = Ractor::Port.new
+      pp << 100
+      # pp.close
+      port << pp
+      # port = pp = nil
+    end
+  end
+end
+
+return_port = Ractor::Port.new
+
+r << return_port
+port = return_port.receive
+# return_port.close
+return_port = nil
+
+c = C.new(port)
+
+pp ractor_and_port_counts
+
+c = port = nil
+
+GC.start
+
+pp ractor_and_port_counts
+
+begin
+  Timeout.timeout(10) do
+    loop do
+      GC.start
+
+      sleep 0.1
+
+      1_000_000.times.map { Object.new }
+    end
+  end
+rescue Timeout::Error
+end
+
+pp ractor_and_port_counts
+pp ractors_and_ports
+
+ObjectSpace.each_object do
+  if it.is_a?(C)
+    pp C
+  end
+end

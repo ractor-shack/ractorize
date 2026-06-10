@@ -1,0 +1,111 @@
+#!/usr/bin/env ruby
+
+def ractor_and_port_counts
+  total_ractor_count = 0
+  total_ractor_port_count = 0
+  open_ractor_count = 0
+  open_ractor_port_count = 0
+
+  ObjectSpace.each_object do
+    case it
+    when Ractor
+      total_ractor_count += 1
+      open_ractor_count += 1 unless it.default_port.closed?
+    when Ractor::Port
+      total_ractor_port_count += 1
+      open_ractor_port_count += 1 unless it.closed?
+    end
+  end
+
+  [total_ractor_count, open_ractor_count, total_ractor_port_count, open_ractor_port_count]
+end
+
+def show_ractor_counts
+  # 2.times do
+  GC.start
+  # sleep 0.1
+  # end
+
+  pp ractor_and_port_counts
+end
+
+class RactorizedObject
+  class << self
+    def finalizer_proc
+      proc do |id|
+        puts "finalizing ro #{id}"
+
+        ros = Ractor[:ros]
+        if ros
+          map = ros[id]
+
+          map&.each_key do |ractor|
+            puts "closing its ractor #{ractor}"
+            begin
+              ractor << :close
+            rescue Ractor::ClosedError
+              puts "already closed!"
+            end
+          end
+        end
+      end
+    end
+
+    def setup_finalizer(ro)
+      ros = Ractor[:ros] ||= {}
+      map = ros[ro.object_id] ||= ObjectSpace::WeakMap.new
+      map[ro.ractor] = true
+
+      ObjectSpace.define_finalizer(ro, &finalizer_proc)
+    end
+  end
+
+  attr_reader :ractor
+
+  def initialize(object)
+    puts "creating ro #{object_id}"
+    @ractor = Ractor.new do
+      o = receive
+
+      loop do
+        puts ::Object.instance_method(:object_id).bind_call(o)
+        message = receive
+        break if message == :close
+      end
+
+      o = nil
+
+      nil
+    end
+
+    @ractor.send(object, move: true)
+
+    self.class.setup_finalizer(self)
+  end
+end
+
+class Outer
+  def initialize
+    inner = Inner.new
+    @inner = RactorizedObject.new(inner)
+  end
+end
+
+class Inner
+end
+
+show_ractor_counts
+
+outer = Outer.new
+outer = RactorizedObject.new(outer)
+
+show_ractor_counts
+
+outer = nil
+
+show_ractor_counts
+
+puts "exiting"
+sleep 1
+
+show_ractor_counts

@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+
+A_NON_MAIN_RACTOR = Ractor.new { sleep 5 }
+
+A_NON_MAIN_RACTOR.singleton_class.attr_accessor :foo
+A_NON_MAIN_RACTOR.foo = 100
+puts A_NON_MAIN_RACTOR.foo

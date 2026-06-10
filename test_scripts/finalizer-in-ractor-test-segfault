@@ -1,0 +1,82 @@
+#!/usr/bin/env ruby
+
+puts Ruby::VERSION
+
+def ractor_and_port_counts
+  total_ractor_count = total_ractor_port_count = open_ractor_count = open_ractor_port_count = 0
+
+  ObjectSpace.each_object do |object|
+    case object
+    when Ractor
+      total_ractor_count += 1
+      open_ractor_count += 1 unless object.default_port.closed?
+    when Ractor::Port
+      total_ractor_port_count += 1
+      open_ractor_port_count += 1 unless object.closed?
+    end
+  end
+
+  [total_ractor_count, open_ractor_count, total_ractor_port_count, open_ractor_port_count]
+end
+
+def show_ractor_counts
+  GC.start
+  pp ractor_and_port_counts
+end
+
+class Wrapper
+  class << self
+    def finalizer_proc
+      proc do |id|
+        wrapper_to_ractor = Ractor[:wrapper_to_ractor]
+
+        if wrapper_to_ractor
+          begin
+            wrapper_to_ractor[id]&.each_key { |ractor| ractor << :close }
+          rescue Ractor::ClosedError
+            # do nothing
+          end
+
+        end
+      end
+    end
+
+    def setup_finalizer(wrapper)
+      wrapper_to_ractor = Ractor[:wrapper_to_ractor] ||= {}
+      map = wrapper_to_ractor[wrapper.object_id] ||= ObjectSpace::WeakMap.new
+      map[wrapper.ractor] = true
+
+      ObjectSpace.define_finalizer(wrapper, &finalizer_proc)
+    end
+  end
+
+  attr_reader :ractor
+
+  def initialize(object)
+    @ractor = Ractor.new do
+      loop { break if receive == :close }
+
+      o = nil
+    end
+
+    @ractor.send(object, move: true)
+
+    self.class.setup_finalizer(self)
+  end
+end
+
+class Outer
+  def initialize = @inner = Wrapper.new(Inner.new)
+end
+
+class Inner; end
+
+show_ractor_counts
+
+outer = Wrapper.new(Outer.new)
+show_ractor_counts
+
+outer = nil
+
+# Removing the following line makes it so it only segfaults sometimes instead of everytime
+show_ractor_counts

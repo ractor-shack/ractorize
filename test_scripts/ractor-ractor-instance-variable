@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+class C
+  attr_accessor :foo
+
+  def initialize = self.foo = 100
+end
+
+A_NON_MAIN_RACTOR = Ractor.new { receive << C.new.freeze }
+
+Ractor.new do
+  port = Ractor::Port.new
+  A_NON_MAIN_RACTOR << port
+  c = port.receive
+  raise "???" unless Ractor.shareable?(c)
+
+  puts c.foo
+end.join

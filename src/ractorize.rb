@@ -64,6 +64,7 @@ module Ractorize
     # Not sure why that is but we need to handle that case.
     def resolve_all_thunks(structure)
       each_thunk(structure, &:__value__)
+      nil
     end
 
     def to_move(target_class, args)
@@ -147,28 +148,38 @@ module Ractorize
       to_move(target_class, args)
     end
 
-    def each_thunk(structure, seen = Set.new, &block)
-      return block.call(structure) if Thunk === structure
-      return if seen.include?(structure)
+    def each_thunk(structure, seen = Set.new, &)
+      each_instance_of(Thunk, structure, seen, 0, &)
+    end
 
-      seen << structure
+    def each_ractorized_object(structure, seen = Set.new, &)
+      each_instance_of(RactorizedObject, structure, seen, 0, &)
+    end
 
-      case structure
-      when Array
-        structure.each { each_thunk(it, seen, &block) }
-      when Hash
-        each_thunk(structure.keys, seen, &block)
-        each_thunk(structure.values, seen, &block)
-      when Struct
-        each_thunk(structure.values, seen, &block)
-      else
-        ivarsget = ::Object.instance_method(:instance_variables)
-        iget = ::Object.instance_method(:instance_variable_get)
+    def send_args(port_like,
+                  klass,
+                  args,
+                  opts,
+                  block = nil)
+      to_move = ::Ractorize.prepare_args(klass, args, opts)
 
-        ivarsget.bind(structure).call.each do |var|
-          each_thunk(iget.bind(structure).call(var), seen, &block)
-        end
+      args.each do |arg|
+        port_like << :arg
+        port_like.send(arg, move: to_move&.include?(arg))
       end
+
+      opts.each_pair do |name, value|
+        port_like << :kwarg
+        port_like << name
+        port_like.send(value, move: to_move&.include?(value))
+      end
+
+      if block
+        port_like << :block
+        port_like << block
+      end
+
+      port_like << :done
     end
 
     def extract_args(port_like)
@@ -200,11 +211,46 @@ module Ractorize
 
       [args, opts, block]
     end
+
+    private
+
+    def each_instance_of(klass, structure, seen = Set.new, depth = 0, &block)
+      depth += 1
+      if klass === structure
+        puts "yielding it!!"
+        block.call(structure)
+      end
+      return if seen.include?(structure)
+
+      seen << structure
+
+      case structure
+      when Array
+        structure.each { each_instance_of(klass, it, seen, depth, &block) }
+      when Hash
+        each_instance_of(klass, structure.keys, seen, depth, &block)
+        each_instance_of(klass, structure.values, seen, depth, &block)
+      when Struct
+        each_instance_of(klass, structure.values, seen, depth, &block)
+      else
+        ivarsget = ::Object.instance_method(:instance_variables)
+        iget = ::Object.instance_method(:instance_variable_get)
+
+        ivarsget.bind(structure).call.each do |var|
+          puts "checking #{var} for #{klass}"
+          value = iget.bind(structure).call(var)
+          puts "value is nil? #{NilClass === value}"
+          each_instance_of(klass, value, seen, depth, &block)
+        end
+      end
+
+      nil
+    end
   end
 
   # Putting this in a constant so we can get test coverage on it since not sure how to get coverage
   # on something inside a ractor.
-  RACTOR_PROC = proc do
+  RACTOR_PROC = Ractor.shareable_proc do
     mode = receive
 
     object = case mode
@@ -274,10 +320,14 @@ module Ractorize
           value = value.__value__ while Ractorize::Thunk === value
 
           begin
+            # wait, what if value is a ractorized object????
+            puts "returnving value, shareable? #{Ractor.shareable?(value)} " \
+                 "ractorized object? #{::Ractorize::RactorizedObject === value}"
             return_port.send(value)
           rescue IOError => e
             # Unclear why this sometimes manifests as this error instead of ClosedError but
             # need to handle them both.
+            puts "ERROR: why??? IOError?? #{e}"
             # :nocov:
             raise unless e.message == "closed stream"
             # :nocov:
@@ -285,9 +335,15 @@ module Ractorize
             # Whoa... this error inherits from StopIteration and will kill the loop!!!
             # Nothing really to do here but keep the loop going and handle other
             # method calls to the ractorized object from other ractors.
+            ::Kernel.puts "hmmmm in ClosedError does that matter??"
           end
         end
       end
+
+      nil
+    rescue => e
+      puts "WAIT WTF NOT HANDLED??? #{e}"
+      raise e
     end
 
     object
