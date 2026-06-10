@@ -78,14 +78,14 @@ module Ractorize
     end
 
     def __close__
-      if @ractor.default_port.closed?
-        @ractor.value
-      else
+      # if @ractor.default_port.closed?
+      #   @ractor.value
+      # else
         # hmmm can't undefine this on self since we are frozen.
         # Do we really need to freeze our self? We won't be shareable if we're not frozen ugg.
         # ::ObjectSpace.undefine_finalizer(self)
         method_missing(:__close__)
-      end
+      #       end
     end
 
     def __join__
