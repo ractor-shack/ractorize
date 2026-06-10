@@ -6,7 +6,6 @@ module Ractorize
     class << self
       def setup_finalizer_proc(ractor)
         proc do
-          puts "Ractorized object finalizer called! Yay!"
           ractor << :__close__ unless ractor.default_port.closed?
         rescue Ractor::ClosedError
           # intentionally swallowing this up
@@ -81,10 +80,10 @@ module Ractorize
       # if @ractor.default_port.closed?
       #   @ractor.value
       # else
-        # hmmm can't undefine this on self since we are frozen.
-        # Do we really need to freeze our self? We won't be shareable if we're not frozen ugg.
-        # ::ObjectSpace.undefine_finalizer(self)
-        method_missing(:__close__)
+      # hmmm can't undefine this on self since we are frozen.
+      # Do we really need to freeze our self? We won't be shareable if we're not frozen ugg.
+      # ::ObjectSpace.undefine_finalizer(self)
+      method_missing(:__close__)
       #       end
     end
 
@@ -95,7 +94,7 @@ module Ractorize
     end
 
     def method_missing(method_name, *args, **opts, &block)
-      if @ractor.default_port.closed? && method_name != :__close__ && method_name != :__join__
+      if @ractor.default_port.closed? # && method_name != :__close__ && method_name != :__join__
         ::Kernel.raise ::Ractor::ClosedError,
                        "You already closed this Ractorized instance of #{@__target_class__}!\n" \
                        "No more methods can be sent to it but you sent #{method_name}"

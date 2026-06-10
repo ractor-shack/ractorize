@@ -21,18 +21,20 @@ RSpec.configure do |config|
     [total_ractor_count, open_ractor_count, total_ractor_port_count, open_ractor_port_count]
   end
 
+  # Seems like we can't use config.around do |example| I assume because the specs memoize stuff
+  # preventing garbage collection and it's still not unreferenced until example goes away
   config.before(:suite) do
     $original_ractor_count,
-    $original_ractor_port_count,
     $original_open_ractor_count,
+    $original_ractor_port_count,
     $original_open_ractor_port_count = ractor_and_port_counts
   end
 
   config.after(:suite) do
     ractor_count,
-      open_ractor_count,
-      ractor_port_count,
-      open_ractor_port_count = nil
+    open_ractor_count,
+    ractor_port_count,
+    open_ractor_port_count = nil
 
     Timeout.timeout(3) do
       loop do
@@ -50,7 +52,11 @@ RSpec.configure do |config|
       end
     end
   rescue Timeout::Error
-    puts "timeout"
+    puts ractor_count
+    puts open_ractor_count
+    puts ractor_port_count
+    puts open_ractor_port_count
+
     leaked_ractors = ractor_count - $original_ractor_count
 
     raise "Leaked ractors: #{leaked_ractors}" if leaked_ractors > 0

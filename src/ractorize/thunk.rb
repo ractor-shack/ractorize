@@ -22,11 +22,10 @@ module Ractorize
       self.__return_value_port__ = return_value_port
       garbage_collectable = ::Object.new
 
-      ::Kernel.puts "setting up finalizer..."
       # ::Ractorize::Thunk.setup_finalizer(garbage_collectable) # , return_value_port)
 
       # garbage_collectable.freeze
-      @__garbage_collectable__ = garbage_collectable
+      # @__garbage_collectable__ = garbage_collectable
     end
 
     def initialize_clone(...)
