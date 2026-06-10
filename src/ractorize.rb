@@ -259,6 +259,12 @@ module Ractorize
         if RactorizedObject === object
           puts "closing and object is a ractorized object"
         end
+
+        ::Ractorize.each_thunk(object) do |t|
+          ::Kernel.puts "found a thunk in close yay!!!"
+        end
+        ::Kernel.puts "done looking for thunks"
+
         puts "closing for object #{object}"
         return_port&.<<(object, move: true)
         method_name = method_args = opts = return_port = block_given = nil
@@ -320,6 +326,7 @@ module Ractorize
       end
     rescue => e
       puts "WAIT WTF NOT HANDLED??? #{e}"
+      raise e
     end
 
     # object

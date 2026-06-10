@@ -410,7 +410,7 @@ RSpec.describe Ractorize do
           end
         end
 
-        it "resolves the inner thunk", :focus do
+        it "resolves the inner thunk" do # , :focus do
           outer = described_class[outer_class].new
           # expect(outer.inner.foo.length).to eq(4)
 

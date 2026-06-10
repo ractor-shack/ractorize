@@ -91,7 +91,14 @@ module Ractorize
       # hmmm can't undefine this on self since we are frozen.
       # Do we really need to freeze our self? We won't be shareable if we're not frozen ugg.
       # ::ObjectSpace.undefine_finalizer(self)
-      method_missing(:__close__)
+      v = method_missing(:__close__)
+
+      ::Ractorize.each_thunk(v) do |t|
+        ::Kernel.puts "found a thunk in close yay!!!"
+      end
+      ::Kernel.puts "done looking for thunks"
+
+      v
       #       end
     end
 
