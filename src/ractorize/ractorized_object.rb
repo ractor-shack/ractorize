@@ -4,6 +4,33 @@ require_relative "thunk"
 module Ractorize
   class RactorizedObject < BasicObject
     class << self
+      def track_thunk2(ractorized_object_id, thunk)
+        ractorized_id_to_thunks = Ractor[:ractorized_id_to_thunks] ||= {}
+
+        thunks = ractorized_id_to_thunks[ractorized_object_id] ||= ObjectSpace::WeakMap.new
+
+        thunks[thunk.__thunk_id__] = thunk
+      end
+
+      def abandon_all_thunks2(ractorized_object_id)
+        ractorized_id_to_thunks = Ractor[:ractorized_id_to_thunks]
+
+        puts "abandoning thunks "
+        if ractorized_id_to_thunks
+          thunks = ractorized_id_to_thunks[ractorized_object_id]
+
+          if thunks
+            puts "abandoning #{thunks.size} thunks "
+            thunks.each_value(&:abandoned!)
+            ractorized_id_to_thunks[ractorized_object_id] = nil
+          else
+            puts "entry found but had no thunks to abandon??"
+          end
+        else
+          puts "hmmm no thunks at all??"
+        end
+      end
+
       def track_thunk(ractorized_object, thunk)
         ractorized_object_id = ractorized_object.__object_id__
         puts "tracking a thunk!!! #{ractorized_object_id}"
@@ -88,6 +115,8 @@ module Ractorize
               puts "hmmm no ractor found in finalizer??"
             end
           end
+
+          abandon_all_thunks2(id)
         end
       end
 
@@ -97,11 +126,18 @@ module Ractorize
         ractorized_objects[ractorized_object.__ractorized_object_id__] = ractor
         ObjectSpace.define_finalizer(ractorized_object, &setup_finalizer_proc)
       end
+
+      def new(...)
+        ro = super
+
+        ::Ractorize::GarbageCollection.track_ractorized_object(ro)
+      end
     end
 
     def initialize(mode, *args, **opts, &block)
       @ractor = ::Ractor.new(name: "#{args.first}<#{args.first.object_id}>", &RACTOR_PROC)
-      RactorizedObject.setup_finalizer(self, @ractor)
+      # RactorizedObject.setup_finalizer(self, @ractor)
+      ::Ractorize::GarbageCollection.track_ractorized_object(self)
 
       case mode
       when :object
@@ -282,10 +318,11 @@ module Ractorize
 
         value
       else
-        ::Kernel.puts "thunk created for port #{return_port} in #{::Ractor.current} for #{method_name}"
-        Thunk.new(return_port)
-        # ::Ractorize::RactorizedObject.track_thunk(self, thunk)
-
+        ::Kernel.puts "creating thunk for port #{return_port} in #{::Ractor.current} for #{method_name}"
+        thunk = Thunk.new(return_port, @__target_class__, method_name)
+        ::Ractorize::RactorizedObject.track_thunk2(__ractorized_object_id__, thunk)
+        ::Kernel.puts "created thunk for port #{return_port} in #{::Ractor.current} for #{method_name}"
+        thunk
       end
     end
 

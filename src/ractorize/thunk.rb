@@ -4,7 +4,7 @@ module Ractorize
   class Thunk < BasicObject
     class << self
       def store_port(thunk_id, port)
-        thunk_id_to_port = Ractor[:thunk_id_to_port] ||= {}
+        thunk_id_to_port = Ractor[:thunk_id_to_port] ||= ObjectSpace::WeakMap.new
         thunk_id_to_port[thunk_id] = port
       end
 
@@ -27,27 +27,61 @@ module Ractorize
         end
       end
 
-      def setup_finalizer(garbage_collectable, thunk_id)
-        # port_ref = WeakRef.new(port)
+      def setup_finalizer_proc(created_for_class, created_for_method)
+        proc do |id|
+          puts "finalizing a thunk with #{id} from #{created_for_class}##{created_for_method}"
 
-        ::ObjectSpace.define_finalizer(garbage_collectable, &finalizer_proc(thunk_id))
+          thunks = Ractor[:thunks]
+
+          if thunks
+            port = thunks[id]
+            if port
+              puts "found port yaaaaaaaaay!!! #{port}"
+
+              if port.closed?
+                puts "already closed so doing nothing"
+              else
+                begin
+                  puts "closing the port"
+                  port.close
+                rescue Ractor::ClosedError
+                  puts "closed error while closing port"
+                end
+                # ractor.join
+                # ::Ractorize::RactorizedObject.abandon_thunks(id)
+              end
+            else
+              puts "hmmm no ractor found in finalizer??"
+            end
+          end
+        end
+      end
+
+      def setup_finalizer(thunk, port, klass, method)
+        # port_ref = WeakRef.new(port)
+        thunks = Ractor[:thunks] ||= ObjectSpace::WeakMap.new
+
+        thunks[thunk.__thunk_id__] = port
+        ObjectSpace.define_finalizer(thunk, &setup_finalizer_proc(klass, method))
       end
     end
 
     class EscapingRactorError < ::StandardError; end
 
-    attr_accessor :__return_value_port__, :__ractor__
+    attr_accessor :__return_value_port__, :__ractor__, :because_of_class, :because_of_method
+    attr_reader :__thunk_id__
 
-    def initialize(return_value_port)
+    def initialize(return_value_port, because_of_class, because_of_method)
       # self.__ractor__ = ::Ractor.current
-      @__gc_collectable__ = garbage_collectable = ::Object.new
+      self.because_of_class = because_of_class
+      self.because_of_method = because_of_method
 
       # self.__return_value_port__ = return_value_port
 
       @__thunk_id__ = ::Object.instance_method(:object_id).bind_call(self)
       ::Ractorize::Thunk.store_port(@__thunk_id__, return_value_port)
 
-      ::Ractorize::Thunk.setup_finalizer(garbage_collectable, @__thunk_id__)
+      ::Ractorize::Thunk.setup_finalizer(self, return_value_port, because_of_class, because_of_method)
 
       # garbage_collectable.freeze
       # @__garbage_collectable__ = garbage_collectable
@@ -93,7 +127,7 @@ module Ractorize
     def resolved? = !!defined?(@__resolving_ractor__)
 
     def __value__
-      # ::Kernel.puts "uh oh, __value__ called hmm..."
+      ::Kernel.puts "uh oh, __value__ called hmm..."
       return @__value__ if defined?(@__value__)
 
       port = ::Ractorize::Thunk.port_for(@__thunk_id__)
@@ -108,16 +142,16 @@ module Ractorize
 
       return @__value__
 
-      # @__value__ = __return_value_port__.receive
-      #
-      # @__resolving_ractor__ = nil
-      # self.__ractor__ = nil
-      # __return_value_port__&.close
-      # self.__return_value_port__ = nil
-      #
-      # ::Object.instance_method(:freeze).bind(self).call
-      #
-      # return @__value__
+      @__value__ = __return_value_port__.receive
+
+      @__resolving_ractor__ = nil
+      self.__ractor__ = nil
+      __return_value_port__&.close
+      self.__return_value_port__ = nil
+
+      ::Object.instance_method(:freeze).bind(self).call
+
+      return @__value__
       #
       # ::Kernel.puts "calling receive on the port... #{__return_value_port__}"
       # value = # if ::Ractor.current == __ractor__

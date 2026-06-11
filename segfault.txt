@@ -1,0 +1,290 @@
+test_scripts/finalizer-in-ractor-test-segfault:51: warning: Ractor API is experimental and may change in future versions of Ruby.
+<internal:gc>:44: [BUG] FL_FINALIZE flag is set, but finalizers are not found
+ruby 4.0.5 (2026-05-20 revision 64336ffd0e) +PRISM [x86_64-linux]
+
+-- Control frame information -----------------------------------------------
+c:0004 p:0010 s:0023 e:000018 l:y b:0001 METHOD <internal:gc>:44
+c:0003 p:0004 s:0011 e:000010 l:y b:0001 METHOD test_scripts/finalizer-in-ractor-test-segfault:23
+c:0002 p:0075 s:0007 E:0001e8 l:n b:---- EVAL   test_scripts/finalizer-in-ractor-test-segfault:72 [FINISH]
+c:0001 p:0000 s:0003 E:001a80 l:y b:---- DUMMY  [FINISH]
+
+-- Ruby level backtrace information ----------------------------------------
+test_scripts/finalizer-in-ractor-test-segfault:72:in '<main>'
+test_scripts/finalizer-in-ractor-test-segfault:23:in 'show_ractor_counts'
+<internal:gc>:44:in 'start'
+
+-- Threading information ---------------------------------------------------
+Total ractor count: 3
+Ruby thread count for this ractor: 1
+
+-- C level backtrace information -------------------------------------------
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(rb_print_backtrace+0x14) [0x7f7eed22944f] /tmp/ruby-build.20260611081759.43971.BdF0YQ/ruby-4.0.5/vm_dump.c:1105
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(rb_vm_bugreport) /tmp/ruby-build.20260611081759.43971.BdF0YQ/ruby-4.0.5/vm_dump.c:1450
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(rb_bug_without_die_internal+0x71) [0x7f7eecef6905] /tmp/ruby-build.20260611081759.43971.BdF0YQ/ruby-4.0.5/error.c:1098
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(rb_bug) /tmp/ruby-build.20260611081759.43971.BdF0YQ/ruby-4.0.5/error.c:1116
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(heap_page_body_free+0x0) [0x7f7eecef708c] gc/default/default.c:2881
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(heap_page_body_free) gc/default/default.c:1716
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(heap_page_free) gc/default/default.c:1737
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(heap_pages_free_unused_pages) gc/default/default.c:1754
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(rb_current_execution_context+0x0) [0x7f7eed0176c1] gc/default/default.c:2934
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(rb_gc_unset_pending_interrupt) /tmp/ruby-build.20260611081759.43971.BdF0YQ/ruby-4.0.5/gc.c:327
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(finalize_deferred) gc/default/default.c:2935
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(gc_finalize_deferred) gc/default/default.c:2944
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(rb_gc_impl_start) gc/default/default.c:6849
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(gc_start_internal) /tmp/ruby-build.20260611081759.43971.BdF0YQ/ruby-4.0.5/gc.c:3488
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(vm_exec_core+0x4cd) [0x7f7eed2098fd] /tmp/ruby-build.20260611081759.43971.BdF0YQ/ruby-4.0.5/vm_insnhelper.c:7537
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(vm_exec_loop+0xa) [0x7f7eed20f4c8] /tmp/ruby-build.20260611081759.43971.BdF0YQ/ruby-4.0.5/vm.c:2825
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(rb_vm_exec) /tmp/ruby-build.20260611081759.43971.BdF0YQ/ruby-4.0.5/vm.c:2801
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(rb_ec_exec_node+0x9b) [0x7f7eecfe802b] /tmp/ruby-build.20260611081759.43971.BdF0YQ/ruby-4.0.5/eval.c:283
+/home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0(ruby_run_node+0x8b) [0x7f7eecfee88b] /tmp/ruby-build.20260611081759.43971.BdF0YQ/ruby-4.0.5/eval.c:321
+/home/miles/.rbenv/versions/4.0.5/bin/ruby(rb_main+0x21) [0x562d76a3f110] ./main.c:42
+/home/miles/.rbenv/versions/4.0.5/bin/ruby(main) ./main.c:62
+/lib/x86_64-linux-gnu/libc.so.6(0x7f7eecaebca8) [0x7f7eecaebca8]
+/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x85) [0x7f7eecaebd65]
+[0x562d76a3f151]
+
+-- Other runtime information -----------------------------------------------
+
+* Loaded script: test_scripts/finalizer-in-ractor-test-segfault
+
+* Ruby Box: disabled
+* Loaded features:
+
+    0 enumerator.so
+    1 thread.rb
+    2 fiber.so
+    3 rational.so
+    4 complex.so
+    5 pathname.so
+    6 ruby2_keywords.rb
+    7 set.rb
+    8 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/enc/encdb.so
+    9 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/enc/trans/transdb.so
+   10 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/rbconfig.rb
+   11 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/defaults.rb
+   12 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/deprecate.rb
+   13 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/errors.rb
+   14 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/target_rbconfig.rb
+   15 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/win_platform.rb
+   16 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/unknown_command_spell_checker.rb
+   17 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/exceptions.rb
+   18 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/basic_specification.rb
+   19 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/stub_specification.rb
+   20 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/platform.rb
+   21 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/specification_record.rb
+   22 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/util/list.rb
+   23 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/version.rb
+   24 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/requirement.rb
+   25 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/specification.rb
+   26 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/util.rb
+   27 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/dependency.rb
+   28 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/core_ext/kernel_gem.rb
+   29 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/monitor.so
+   30 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/monitor.rb
+   31 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems.rb
+   32 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/bundled_gems.rb
+   33 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/rubygems/path_support.rb
+   34 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/error_highlight/version.rb
+   35 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/error_highlight/base.rb
+   36 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/error_highlight/formatter.rb
+   37 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/error_highlight/core_ext.rb
+   38 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/error_highlight.rb
+   39 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/version.rb
+   40 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/core_ext/name_error.rb
+   41 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/levenshtein.rb
+   42 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/jaro_winkler.rb
+   43 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/spell_checker.rb
+   44 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/spell_checkers/name_error_checkers/class_name_checker.rb
+   45 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/spell_checkers/name_error_checkers/variable_name_checker.rb
+   46 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/spell_checkers/name_error_checkers.rb
+   47 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/spell_checkers/method_name_checker.rb
+   48 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/spell_checkers/key_error_checker.rb
+   49 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/spell_checkers/null_checker.rb
+   50 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/tree_spell_checker.rb
+   51 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/spell_checkers/require_path_checker.rb
+   52 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/spell_checkers/pattern_key_name_checker.rb
+   53 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean/formatter.rb
+   54 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/did_you_mean.rb
+   55 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/syntax_suggest/core_ext.rb
+   56 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/prettyprint.rb
+   57 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/pp.rb
+   58 /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/io/console.so
+
+* Process memory map:
+
+562d76a3e000-562d76a3f000 r--p 00000000 00:47 52654658                   /home/miles/.rbenv/versions/4.0.5/bin/ruby
+562d76a3f000-562d76a40000 r-xp 00001000 00:47 52654658                   /home/miles/.rbenv/versions/4.0.5/bin/ruby
+562d76a40000-562d76a41000 r--p 00002000 00:47 52654658                   /home/miles/.rbenv/versions/4.0.5/bin/ruby
+562d76a41000-562d76a42000 r--p 00002000 00:47 52654658                   /home/miles/.rbenv/versions/4.0.5/bin/ruby
+562d76a42000-562d76a43000 rw-p 00003000 00:47 52654658                   /home/miles/.rbenv/versions/4.0.5/bin/ruby
+562db2a7e000-562db2dc8000 rw-p 00000000 00:00 0                          [heap]
+7f7ea9eab000-7f7eaa093000 r--s 00000000 00:1d 8868886                    /usr/lib/x86_64-linux-gnu/libc.so.6
+7f7eaa093000-7f7eaaae9000 rw-p 00000000 00:00 0 
+7f7eaaae9000-7f7eac000000 r--s 00000000 00:47 52654660                   /home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0.5
+7f7eac000000-7f7eac021000 rw-p 00000000 00:00 0 
+7f7eac021000-7f7eb0000000 ---p 00000000 00:00 0 
+7f7eb0044000-7f7eb10ff000 rw-p 00000000 00:00 0 
+7f7eb10ff000-7f7eb1100000 ---p 00000000 00:00 0 
+7f7eb1100000-7f7eb1200000 rw-p 00000000 00:00 0 
+7f7eb1200000-7f7eb1301000 rw-p 00000000 00:00 0 
+7f7eb1301000-7f7eb1302000 ---p 00000000 00:00 0 
+7f7eb1302000-7f7eb1402000 rw-p 00000000 00:00 0 
+7f7eb1402000-7f7eb1502000 rw-p 00000000 00:00 0 
+7f7eb1502000-7f7eb1503000 ---p 00000000 00:00 0 
+7f7eb1503000-7f7eb1603000 rw-p 00000000 00:00 0 
+7f7eb1603000-7f7ed1200000 ---p 00000000 00:00 0 
+7f7ed1220000-7f7ed1267000 rw-p 00000000 00:00 0 
+7f7ed1267000-7f7ed129f000 r--s 00000000 00:47 52654658                   /home/miles/.rbenv/versions/4.0.5/bin/ruby
+7f7ed129f000-7f7ed12a0000 ---p 00000000 00:00 0 
+7f7ed12a0000-7f7ed13a0000 rw-p 00000000 00:00 0 
+7f7ed13a0000-7f7ed1430000 rw-p 00000000 00:00 0 
+7f7ed143f000-7f7ed14b0000 rw-p 00000000 00:00 0 
+7f7ed14bf000-7f7ed15b0000 rw-p 00000000 00:00 0 
+7f7ed15bf000-7f7ed15c0000 ---p 00000000 00:00 0 
+7f7ed15c0000-7f7ed1661000 rw-p 00000000 00:00 0 
+7f7ed1661000-7f7ed1662000 ---p 00000000 00:00 0 
+7f7ed1662000-7f7ed1703000 rw-p 00000000 00:00 0 
+7f7ed1703000-7f7ed1704000 ---p 00000000 00:00 0 
+7f7ed1704000-7f7ed17a5000 rw-p 00000000 00:00 0 
+7f7ed17a5000-7f7ed17a6000 ---p 00000000 00:00 0 
+7f7ed17a6000-7f7ed1847000 rw-p 00000000 00:00 0 
+7f7ed1847000-7f7ed1848000 ---p 00000000 00:00 0 
+7f7ed1848000-7f7ed18e9000 rw-p 00000000 00:00 0 
+7f7ed18e9000-7f7ed18ea000 ---p 00000000 00:00 0 
+7f7ed18ea000-7f7ed198b000 rw-p 00000000 00:00 0 
+7f7ed198b000-7f7ed198c000 ---p 00000000 00:00 0 
+7f7ed198c000-7f7ed1a2d000 rw-p 00000000 00:00 0 
+7f7ed1a2d000-7f7ed1a2e000 ---p 00000000 00:00 0 
+7f7ed1a2e000-7f7ed1acf000 rw-p 00000000 00:00 0 
+7f7ed1acf000-7f7ed1ad0000 ---p 00000000 00:00 0 
+7f7ed1ad0000-7f7ed1b71000 rw-p 00000000 00:00 0 
+7f7ed1b71000-7f7ed1b72000 ---p 00000000 00:00 0 
+7f7ed1b72000-7f7ed1c13000 rw-p 00000000 00:00 0 
+7f7ed1c13000-7f7ed1c14000 ---p 00000000 00:00 0 
+7f7ed1c14000-7f7ed1cb5000 rw-p 00000000 00:00 0 
+7f7ed1cb5000-7f7ed1cb6000 ---p 00000000 00:00 0 
+7f7ed1cb6000-7f7ed1d57000 rw-p 00000000 00:00 0 
+7f7ed1d57000-7f7ed1d58000 ---p 00000000 00:00 0 
+7f7ed1d58000-7f7ed1df9000 rw-p 00000000 00:00 0 
+7f7ed1df9000-7f7ed1dfa000 ---p 00000000 00:00 0 
+7f7ed1dfa000-7f7ed1e9b000 rw-p 00000000 00:00 0 
+7f7ed1e9b000-7f7ed1e9c000 ---p 00000000 00:00 0 
+7f7ed1e9c000-7f7ed1f3d000 rw-p 00000000 00:00 0 
+7f7ed1f3d000-7f7ed1f3e000 ---p 00000000 00:00 0 
+7f7ed1f3e000-7f7ed1fdf000 rw-p 00000000 00:00 0 
+7f7ed1fdf000-7f7ed1fe0000 ---p 00000000 00:00 0 
+7f7ed1fe0000-7f7ed2081000 rw-p 00000000 00:00 0 
+7f7ed2081000-7f7ed2082000 ---p 00000000 00:00 0 
+7f7ed2082000-7f7ed2123000 rw-p 00000000 00:00 0 
+7f7ed2123000-7f7ed2124000 ---p 00000000 00:00 0 
+7f7ed2124000-7f7ed21c5000 rw-p 00000000 00:00 0 
+7f7ed21c5000-7f7ed21c6000 ---p 00000000 00:00 0 
+7f7ed21c6000-7f7ed2267000 rw-p 00000000 00:00 0 
+7f7ed2267000-7f7ed2268000 ---p 00000000 00:00 0 
+7f7ed2268000-7f7ed2309000 rw-p 00000000 00:00 0 
+7f7ed2309000-7f7ed230a000 ---p 00000000 00:00 0 
+7f7ed230a000-7f7ed23ab000 rw-p 00000000 00:00 0 
+7f7ed23ab000-7f7ed23ac000 ---p 00000000 00:00 0 
+7f7ed23ac000-7f7ed244d000 rw-p 00000000 00:00 0 
+7f7ed244d000-7f7ed244e000 ---p 00000000 00:00 0 
+7f7ed244e000-7f7ed24ef000 rw-p 00000000 00:00 0 
+7f7ed24ef000-7f7ed24f0000 ---p 00000000 00:00 0 
+7f7ed24f0000-7f7ed2591000 rw-p 00000000 00:00 0 
+7f7ed2591000-7f7ed2592000 ---p 00000000 00:00 0 
+7f7ed2592000-7f7ed2633000 rw-p 00000000 00:00 0 
+7f7ed2633000-7f7ed2634000 ---p 00000000 00:00 0 
+7f7ed2634000-7f7ed26d5000 rw-p 00000000 00:00 0 
+7f7ed26d5000-7f7ed26d6000 ---p 00000000 00:00 0 
+7f7ed26d6000-7f7ed2777000 rw-p 00000000 00:00 0 
+7f7ed2777000-7f7ed2778000 ---p 00000000 00:00 0 
+7f7ed2778000-7f7ed2819000 rw-p 00000000 00:00 0 
+7f7ed2819000-7f7ed281a000 ---p 00000000 00:00 0 
+7f7ed281a000-7f7ed28bb000 rw-p 00000000 00:00 0 
+7f7ed28bb000-7f7ed28bc000 ---p 00000000 00:00 0 
+7f7ed28bc000-7f7ed295d000 rw-p 00000000 00:00 0 
+7f7ed295d000-7f7ed295e000 ---p 00000000 00:00 0 
+7f7ed295e000-7f7ed29ff000 rw-p 00000000 00:00 0 
+7f7ed29ff000-7f7ed2a00000 ---p 00000000 00:00 0 
+7f7ed2a00000-7f7ed3200000 rw-p 00000000 00:00 0 
+7f7ed3200000-7f7eec600000 rw-p 00000000 00:00 0 
+7f7eec600000-7f7eec8ec000 r--p 00000000 00:1d 8880284                    /usr/lib/locale/locale-archive
+7f7eec900000-7f7eec950000 rw-p 00000000 00:00 0 
+7f7eec976000-7f7eec978000 r--p 00000000 00:47 52654695                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/io/console.so
+7f7eec978000-7f7eec97d000 r-xp 00002000 00:47 52654695                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/io/console.so
+7f7eec97d000-7f7eec97e000 r--p 00007000 00:47 52654695                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/io/console.so
+7f7eec97e000-7f7eec97f000 r--p 00008000 00:47 52654695                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/io/console.so
+7f7eec97f000-7f7eec980000 rw-p 00009000 00:47 52654695                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/io/console.so
+7f7eec980000-7f7eec990000 rw-p 00000000 00:00 0 
+7f7eec992000-7f7eeca95000 rw-p 00000000 00:00 0 
+7f7eeca95000-7f7eeca99000 r--p 00000000 00:1d 4677836                    /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+7f7eeca99000-7f7eecabc000 r-xp 00004000 00:1d 4677836                    /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+7f7eecabc000-7f7eecac0000 r--p 00027000 00:1d 4677836                    /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+7f7eecac0000-7f7eecac1000 r--p 0002b000 00:1d 4677836                    /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+7f7eecac1000-7f7eecac2000 rw-p 0002c000 00:1d 4677836                    /usr/lib/x86_64-linux-gnu/libgcc_s.so.1
+7f7eecac2000-7f7eecaea000 r--p 00000000 00:1d 8868886                    /usr/lib/x86_64-linux-gnu/libc.so.6
+7f7eecaea000-7f7eecc4d000 r-xp 00028000 00:1d 8868886                    /usr/lib/x86_64-linux-gnu/libc.so.6
+7f7eecc4d000-7f7eecca3000 r--p 0018b000 00:1d 8868886                    /usr/lib/x86_64-linux-gnu/libc.so.6
+7f7eecca3000-7f7eecca7000 r--p 001e0000 00:1d 8868886                    /usr/lib/x86_64-linux-gnu/libc.so.6
+7f7eecca7000-7f7eecca9000 rw-p 001e4000 00:1d 8868886                    /usr/lib/x86_64-linux-gnu/libc.so.6
+7f7eecca9000-7f7eeccb6000 rw-p 00000000 00:00 0 
+7f7eeccb6000-7f7eeccc7000 r--p 00000000 00:1d 8868889                    /usr/lib/x86_64-linux-gnu/libm.so.6
+7f7eeccc7000-7f7eecd44000 r-xp 00011000 00:1d 8868889                    /usr/lib/x86_64-linux-gnu/libm.so.6
+7f7eecd44000-7f7eecda4000 r--p 0008e000 00:1d 8868889                    /usr/lib/x86_64-linux-gnu/libm.so.6
+7f7eecda4000-7f7eecda5000 r--p 000ed000 00:1d 8868889                    /usr/lib/x86_64-linux-gnu/libm.so.6
+7f7eecda5000-7f7eecda6000 rw-p 000ee000 00:1d 8868889                    /usr/lib/x86_64-linux-gnu/libm.so.6
+7f7eecda6000-7f7eecda8000 rw-p 00000000 00:00 0 
+7f7eecda8000-7f7eecdaa000 r--p 00000000 00:1d 3355737                    /usr/lib/x86_64-linux-gnu/libcrypt.so.1.1.0
+7f7eecdaa000-7f7eecdc0000 r-xp 00002000 00:1d 3355737                    /usr/lib/x86_64-linux-gnu/libcrypt.so.1.1.0
+7f7eecdc0000-7f7eecdda000 r--p 00018000 00:1d 3355737                    /usr/lib/x86_64-linux-gnu/libcrypt.so.1.1.0
+7f7eecdda000-7f7eecddb000 r--p 00031000 00:1d 3355737                    /usr/lib/x86_64-linux-gnu/libcrypt.so.1.1.0
+7f7eecddb000-7f7eecddc000 rw-p 00032000 00:1d 3355737                    /usr/lib/x86_64-linux-gnu/libcrypt.so.1.1.0
+7f7eecddc000-7f7eecde4000 rw-p 00000000 00:00 0 
+7f7eecde4000-7f7eecdf0000 r--p 00000000 00:1d 2638518                    /usr/lib/x86_64-linux-gnu/libgmp.so.10.5.0
+7f7eecdf0000-7f7eece55000 r-xp 0000c000 00:1d 2638518                    /usr/lib/x86_64-linux-gnu/libgmp.so.10.5.0
+7f7eece55000-7f7eece6c000 r--p 00071000 00:1d 2638518                    /usr/lib/x86_64-linux-gnu/libgmp.so.10.5.0
+7f7eece6c000-7f7eece6d000 r--p 00088000 00:1d 2638518                    /usr/lib/x86_64-linux-gnu/libgmp.so.10.5.0
+7f7eece6d000-7f7eece6e000 rw-p 00089000 00:1d 2638518                    /usr/lib/x86_64-linux-gnu/libgmp.so.10.5.0
+7f7eece6e000-7f7eece71000 r--p 00000000 00:1d 1924686                    /usr/lib/x86_64-linux-gnu/libz.so.1.3.1
+7f7eece71000-7f7eece85000 r-xp 00003000 00:1d 1924686                    /usr/lib/x86_64-linux-gnu/libz.so.1.3.1
+7f7eece85000-7f7eece8c000 r--p 00017000 00:1d 1924686                    /usr/lib/x86_64-linux-gnu/libz.so.1.3.1
+7f7eece8c000-7f7eece8d000 r--p 0001d000 00:1d 1924686                    /usr/lib/x86_64-linux-gnu/libz.so.1.3.1
+7f7eece8d000-7f7eece8e000 rw-p 0001e000 00:1d 1924686                    /usr/lib/x86_64-linux-gnu/libz.so.1.3.1
+7f7eece8e000-7f7eece8f000 r--p 00000000 00:47 52654691                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/monitor.so
+7f7eece8f000-7f7eece90000 r-xp 00001000 00:47 52654691                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/monitor.so
+7f7eece90000-7f7eece91000 r--p 00002000 00:47 52654691                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/monitor.so
+7f7eece91000-7f7eece92000 r--p 00002000 00:47 52654691                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/monitor.so
+7f7eece92000-7f7eece93000 rw-p 00003000 00:47 52654691                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/monitor.so
+7f7eece94000-7f7eece95000 r--p 00000000 00:47 52654767                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/enc/trans/transdb.so
+7f7eece95000-7f7eece96000 r-xp 00001000 00:47 52654767                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/enc/trans/transdb.so
+7f7eece96000-7f7eece97000 r--p 00002000 00:47 52654767                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/enc/trans/transdb.so
+7f7eece97000-7f7eece98000 r--p 00002000 00:47 52654767                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/enc/trans/transdb.so
+7f7eece98000-7f7eece99000 rw-p 00003000 00:47 52654767                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/enc/trans/transdb.so
+7f7eece99000-7f7eece9a000 r--p 00000000 00:47 52654745                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/enc/encdb.so
+7f7eece9a000-7f7eece9b000 r-xp 00001000 00:47 52654745                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/enc/encdb.so
+7f7eece9b000-7f7eece9c000 r--p 00002000 00:47 52654745                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/enc/encdb.so
+7f7eece9c000-7f7eece9d000 r--p 00002000 00:47 52654745                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/enc/encdb.so
+7f7eece9d000-7f7eece9e000 rw-p 00003000 00:47 52654745                   /home/miles/.rbenv/versions/4.0.5/lib/ruby/4.0.0/x86_64-linux/enc/encdb.so
+7f7eece9e000-7f7eecea5000 r--s 00000000 00:1d 8868875                    /usr/lib/x86_64-linux-gnu/gconv/gconv-modules.cache
+7f7eecea5000-7f7eecea6000 rw-p 00000000 00:00 0 
+7f7eecea6000-7f7eecea7000 rw-p 00000000 00:00 0 
+7f7eecea7000-7f7eeceef000 r--p 00000000 00:47 52654660                   /home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0.5
+7f7eeceef000-7f7eed3c0000 r-xp 00048000 00:47 52654660                   /home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0.5
+7f7eed3c0000-7f7eed561000 r--p 00519000 00:47 52654660                   /home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0.5
+7f7eed561000-7f7eed578000 r--p 006b9000 00:47 52654660                   /home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0.5
+7f7eed578000-7f7eed57c000 rw-p 006d0000 00:47 52654660                   /home/miles/.rbenv/versions/4.0.5/lib/libruby.so.4.0.5
+7f7eed57c000-7f7eed592000 rw-p 00000000 00:00 0 
+7f7eed592000-7f7eed596000 r--p 00000000 00:00 0                          [vvar]
+7f7eed596000-7f7eed598000 r-xp 00000000 00:00 0                          [vdso]
+7f7eed598000-7f7eed599000 r--p 00000000 00:1d 8868883                    /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+7f7eed599000-7f7eed5c1000 r-xp 00001000 00:1d 8868883                    /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+7f7eed5c1000-7f7eed5cc000 r--p 00029000 00:1d 8868883                    /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+7f7eed5cc000-7f7eed5ce000 r--p 00034000 00:1d 8868883                    /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+7f7eed5ce000-7f7eed5cf000 rw-p 00036000 00:1d 8868883                    /usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2
+7f7eed5cf000-7f7eed5d0000 rw-p 00000000 00:00 0 
+7ffd34b9f000-7ffd34bc1000 rw-p 00000000 00:00 0                          [stack]
+
+
+<internal:gc>:44: [BUG] Aborted at 0x000003e8000290f4
+ruby 4.0.5 (2026-05-20 revision 64336ffd0e) +PRISM [x86_64-linux]
+
+Crashed while printing bug report
