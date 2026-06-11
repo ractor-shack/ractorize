@@ -156,11 +156,11 @@ module Ractorize
     end
 
     def each_thunk(structure, seen = Set.new, &)
-      each_instance_of(Thunk, structure, seen, &)
+      each_instance_of(Thunk, structure, seen, 0, &)
     end
 
     def each_ractorized_object(structure, seen = Set.new, &)
-      each_instance_of(RactorizedObject, structure, seen, &)
+      each_instance_of(RactorizedObject, structure, seen, 0, &)
     end
 
     def extract_args(port_like)
@@ -195,7 +195,9 @@ module Ractorize
 
     private
 
-    def each_instance_of(klass, structure, seen = Set.new, &block)
+    def each_instance_of(klass, structure, seen = Set.new, depth = 0, &block)
+      puts depth
+      depth += 1
       if klass === structure
         puts "yielding it!!"
         block.call(structure)
@@ -206,12 +208,12 @@ module Ractorize
 
       case structure
       when Array
-        structure.each { each_instance_of(klass, it, seen, &block) }
+        structure.each { each_instance_of(klass, it, seen, depth, &block) }
       when Hash
-        each_thunk(structure.keys, seen, &block)
-        each_thunk(structure.values, seen, &block)
+        each_instance_of(klass, structure.keys, seen, depth, &block)
+        each_instance_of(klass, structure.values, seen, depth, &block)
       when Struct
-        each_thunk(structure.values, seen, &block)
+        each_instance_of(klass, structure.values, seen, depth, &block)
       else
         ivarsget = ::Object.instance_method(:instance_variables)
         iget = ::Object.instance_method(:instance_variable_get)
@@ -220,7 +222,7 @@ module Ractorize
           puts "checking #{var} for #{klass}"
           value = iget.bind(structure).call(var)
           puts "value is nil? #{NilClass === value}"
-          each_instance_of(klass, value, seen, &block)
+          each_instance_of(klass, value, seen, depth, &block)
         end
       end
 
@@ -294,7 +296,6 @@ module Ractorize
         method_name = method_args = opts = return_port = block_given = nil
         close
         # Ractorize.resolve_all_thunks(object)
-        object = nil
         puts "done with __close__"
         break
       else
@@ -347,6 +348,7 @@ module Ractorize
             # Whoa... this error inherits from StopIteration and will kill the loop!!!
             # Nothing really to do here but keep the loop going and handle other
             # method calls to the ractorized object from other ractors.
+            ::Kernel.puts "hmmmm in ClosedError does that matter??"
           end
         end
       end

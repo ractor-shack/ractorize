@@ -50,43 +50,46 @@ module Ractorize
         end
       end
 
-      def setup_finalizer_proc(ractor)
+      def setup_finalizer_proc
         proc do |id|
-          puts "finalizing a ractorized object with #{id} with ractor #{ractor}"
-          if ractor.default_port.closed?
-            puts "already closed so doing nothing"
-          else
-            puts "sending __close__"
-            return_port = Ractor::Port.new
-            ractor << [:__close__, nil, nil, return_port, nil].freeze
-            puts "sent __close__"
-            object = return_port.receive
-            puts "got object from __close__"
-            # ractor.join
-            # Ractorize.each_thunk(object, &:abandoned!)
-            # Ractorize.each_ractorized_object(object, &:__close__)
-            # # ::Ractorize::RactorizedObject.abandon_thunks(id)
-          end
+          puts "finalizing a ractorized object with #{id}"
 
-          ::Kernel.puts "Calling ractorized object finalizer in #{Ractor.current}"
-          # TODO: don't blow them all away! Only the ones for this ractorized object!
-          ::Ractor[:thunk_id_to_port]&.each_key do |thunk_id|
-            ::Kernel.puts "closing a port in __close__"
-            port = ::Ractorize::Thunk.remove_port_for(thunk_id)
+          ractorized_objects = Ractor[:ractorized_objects]
 
-            unless port
-              ::Kernel.puts "strange... didn't find a port??"
-            end
-            port&.close
-          rescue Ractor::ClosedError
-            # do nothing
+          if ractorized_objects
+            ractor = ractorized_objects[id]
+            puts "found ractor yaaaaaaaaay!!! #{ractor}"
           end
-          Ractor[:thunk_id_to_port] = nil
+          # if ractor.default_port.closed?
+          #   puts "already closed so doing nothing"
+          # else
+          #   puts "sending __close__"
+          #   return_port = ::Ractor::Port.new
+          #   ractor << [:__close__, nil, nil, return_port, nil].freeze
+          #   puts "sent __close__"
+          #   begin
+          #     object = return_port.receive
+          #     puts "got object from __close__"
+          #     Ractorize.each_thunk(object, &:abandoned!)
+          #     Ractorize.each_ractorized_object(object) do
+          #       it.__close__
+          #     rescue ::Ractor::ClosedError
+          #       # do nothing
+          #     end
+          #   rescue Ractor::ClosedError
+          #     # do nothing
+          #   end
+          #   # ractor.join
+          #   # ::Ractorize::RactorizedObject.abandon_thunks(id)
+          # end
         end
       end
 
       def setup_finalizer(ractorized_object, ractor)
-        ObjectSpace.define_finalizer(ractorized_object, &setup_finalizer_proc(ractor))
+        ractorized_objects = Ractor[:ractorized_objects] ||= ObjectSpace::WeakMap.new
+
+        ractorized_objects[ractorized_object.__ractorized_object_id__] = ractor
+        ObjectSpace.define_finalizer(ractorized_object, &setup_finalizer_proc)
       end
     end
 
@@ -150,18 +153,35 @@ module Ractorize
       ::Object.instance_method(:freeze).bind(self).call
     end
 
-    def __close__
-      return @__final_value__ if defined?(@__final_value__)
+    def __ractorized_object_id__
+      ::Object.instance_method(:object_id).bind_call(self)
+    end
 
+    def __close__
       # if @ractor.default_port.closed?
       #   @ractor.value
       # else
       # hmmm can't undefine this on self since we are frozen.
       # Do we really need to freeze our self? We won't be shareable if we're not frozen ugg.
       # ::ObjectSpace.undefine_finalizer(self)
-      @__final_value__ = method_missing(:__close__)
+      v = method_missing(:__close__).__value__
 
+      # TODO: don't blow them all away! Only the ones for this ractorized object!
+      ::Ractor[:thunk_id_to_port]&.each_key do |thunk_id|
+        ::Kernel.puts "closing a port in __close__"
+        port = ::Ractorize::Thunk.remove_port_for(thunk_id)
+
+        unless port
+          ::Kernel.puts "strange... didn't find a port??"
+        end
+        port&.close
+      rescue Ractor::ClosedError
+        # do nothing
+      end
+      ::Ractor[:thunk_id_to_port] = nil
       #       end
+
+      v
     end
 
     def __join__
@@ -176,15 +196,14 @@ module Ractorize
     end
 
     def method_missing(method_name, *args, **opts, &block)
-      return @__final_value__ if defined?(@__final_value__)
+      # return @__final_value__ if defined?(@__final_value__)
 
       ::Kernel.puts method_name
       if @ractor.default_port.closed? # && method_name != :__close__ && method_name != :__join__
-        # return if method_name == :__close__
-
-        @__final_value__ ||= @ractor.value
-
-        return @__final_value__.send(method_name, *args, **opts, &block)
+        ::Kernel.raise ::Ractor::ClosedError, "Ractorized object is already closed and cannot be used anymore"
+        # return @ractor.value if method_name == :__close__ || method_name == :__join__
+        #
+        # return @ractor.value.send(method_name, *args, **opts, &block)
       end
 
       return_port = ::Ractor::Port.new
@@ -277,11 +296,10 @@ module Ractorize
       method_missing(:respond_to?, method_name, include_all)
     end
 
-    def ==(other) = method_missing(:==, other)
-    def !=(other) = method_missing(:==, other)
+    def ==(other) = method_missing(:==, other) || super
+    def !=(other) = method_missing(:==, other) || super
     def ! = method_missing(:!)
-    def eql?(other) = method_missing(:eql?, other)
-    # def equal?(other) = method_missing(:equal?, other)
+    def equal?(other) = method_missing(:equal?, other) || super
 
     def __object_id__
       return @__object_id__ if defined?(@__object_id__)

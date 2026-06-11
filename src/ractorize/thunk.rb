@@ -16,17 +16,21 @@ module Ractorize
         Ractor[:thunk_id_to_port]&.delete(thunk_id)
       end
 
-      def finalizer_proc(port)
+      def finalizer_proc(thunk_id)
         proc do |id|
-          puts "closing #{port} in thunk finalizer for #{id}"
-          port
+          port = remove_port_for(thunk_id)
+          puts "closing #{port} in thunk finalizer for #{id} thunk_id #{thunk_id}"
+          port&.close
+        rescue => e
+          puts "wtf unhandled in thunk finalizer: #{e}"
+          puts e.backtrace
         end
       end
 
-      def setup_finalizer(garbage_collectable, port)
+      def setup_finalizer(garbage_collectable, thunk_id)
         # port_ref = WeakRef.new(port)
 
-        ::ObjectSpace.define_finalizer(garbage_collectable, &finalizer_proc(port))
+        ::ObjectSpace.define_finalizer(garbage_collectable, &finalizer_proc(thunk_id))
       end
     end
 
@@ -43,7 +47,7 @@ module Ractorize
       @__thunk_id__ = ::Object.instance_method(:object_id).bind_call(self)
       ::Ractorize::Thunk.store_port(@__thunk_id__, return_value_port)
 
-      ::Ractorize::Thunk.setup_finalizer(garbage_collectable, return_value_port)
+      ::Ractorize::Thunk.setup_finalizer(garbage_collectable, @__thunk_id__)
 
       # garbage_collectable.freeze
       # @__garbage_collectable__ = garbage_collectable
@@ -92,13 +96,14 @@ module Ractorize
       # ::Kernel.puts "uh oh, __value__ called hmm..."
       return @__value__ if defined?(@__value__)
 
-      port = ::Ractorize::Thunk.remove_port_for(@__thunk_id__)
+      port = ::Ractorize::Thunk.port_for(@__thunk_id__)
       @__value__ = begin
-        raise "wtf" unless port
+        ::Kernel.raise "wtf" unless port
 
         port.receive
       ensure
         port.close
+        ::Ractorize::Thunk.remove_port_for(@__thunk_id__)
       end
 
       return @__value__
