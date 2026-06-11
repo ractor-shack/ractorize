@@ -32,10 +32,8 @@ end
 
 def finalize_proc
   proc do |id|
-    puts "going to clean up!! #{id}"
     CLEANUP_RACTOR << [:clean_up, id].freeze
   rescue
-    puts "hmmm cleanup ractor already closed??"
     Ractor::ClosedError
   end
 end
@@ -49,10 +47,8 @@ RACTOR_TRACKER = Ractor.new(name: "tracker") do
 
     case action
     when :put
-      puts "adding #{ractor_or_id.object_id}! #{ractor_or_id}"
       id_to_ractor[ractor_or_id.object_id] = ractor_or_id
     when :get
-      puts "getting #{ractor_or_id}"
       return_port.send(id_to_ractor[ractor_or_id])
     when :delete
       ractor = id_to_ractor.delete(ractor_or_id)
@@ -89,22 +85,15 @@ CLEANUP_RACTOR = Ractor.new(name: "cleanup ractor") do
       object_or_id = nil
       return_port = nil
     when :clean_up
-      puts "going to cleanup #{object_or_id}!"
       port_like = id_to_portlike[object_or_id]
 
       if port_like
-        puts "it has port-like #{port_like}"
         begin
-          puts "attempting close!"
           RACTOR_TRACKER << [:delete, port_like.object_id]
           port_like << :close
-          puts "worked!"
         rescue Ractor::ClosedError
-          puts "failed to close! already closed??"
         end
         port_like = nil
-      else
-        puts "it has no port-like"
       end
     else
       raise "wtf, can't handle #{action}"
@@ -138,14 +127,13 @@ class Wrapper
       end
 
       return_port = Ractor::Port.new
-      message = [:add, w.object_id, ractor]
+      message = [:add, w.object_id, ractor, return_port]
 
       CLEANUP_RACTOR.send(message)
+      return_port.receive
       w.instance_variable_set(:@ractor_id, ractor.object_id)
 
       setup_finalizer(w)
-
-      sleep 1
 
       w.freeze
     end
