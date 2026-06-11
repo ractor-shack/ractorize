@@ -38,10 +38,10 @@ module Ractorize
       # self.__ractor__ = ::Ractor.current
       @__gc_collectable__ = garbage_collectable = ::Object.new
 
-      self.__return_value_port__ = return_value_port
+      # self.__return_value_port__ = return_value_port
 
       @__thunk_id__ = ::Object.instance_method(:object_id).bind_call(self)
-      # ::Ractorize::Thunk.store_port(@__thunk_id__, return_value_port)
+      ::Ractorize::Thunk.store_port(@__thunk_id__, return_value_port)
 
       ::Ractorize::Thunk.setup_finalizer(garbage_collectable, return_value_port)
 
@@ -92,29 +92,27 @@ module Ractorize
       # ::Kernel.puts "uh oh, __value__ called hmm..."
       return @__value__ if defined?(@__value__)
 
-      #
-      # port = ::Ractorize::Thunk.remove_port_for(@__thunk_id__)
-      # @__value__ = begin
-      #   raise "wtf" unless port
-      #
-      #   port.receive
-      # ensure
-      #   port.close
-      # end
-      #
-      # port.close
-      # return @__value__
+      port = ::Ractorize::Thunk.remove_port_for(@__thunk_id__)
+      @__value__ = begin
+        raise "wtf" unless port
 
-      @__value__ = __return_value_port__.receive
-
-      @__resolving_ractor__ = nil
-      self.__ractor__ = nil
-      __return_value_port__&.close
-      self.__return_value_port__ = nil
-
-      ::Object.instance_method(:freeze).bind(self).call
+        port.receive
+      ensure
+        port.close
+      end
 
       return @__value__
+
+      # @__value__ = __return_value_port__.receive
+      #
+      # @__resolving_ractor__ = nil
+      # self.__ractor__ = nil
+      # __return_value_port__&.close
+      # self.__return_value_port__ = nil
+      #
+      # ::Object.instance_method(:freeze).bind(self).call
+      #
+      # return @__value__
       #
       # ::Kernel.puts "calling receive on the port... #{__return_value_port__}"
       # value = # if ::Ractor.current == __ractor__
