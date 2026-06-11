@@ -121,7 +121,7 @@ end
 # end
 
 def setup_finalizer(wrapper)
-  ObjectSpace.define_finalizer(wrapper, &finalizer_proc)
+  ObjectSpace.define_finalizer(wrapper, &finalize_proc)
 end
 
 class Wrapper
