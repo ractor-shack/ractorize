@@ -84,10 +84,8 @@ CLEANUP_RACTOR = Ractor.new(name: "cleanup ractor") do
       close
       break
     when :add
-      id_to_portlike[object_or_id.object_id] = port_like
+      id_to_portlike[object_or_id] = port_like
       port_like = nil
-      ObjectSpace.define_finalizer(object_or_id, &finalize_proc)
-      return_port.send(object_or_id, move: true)
       object_or_id = nil
       return_port = nil
     when :clean_up
@@ -123,7 +121,7 @@ def finalizer_proc
 end
 
 def setup_finalizer(wrapper)
-  ObjectSpace.define_finalizer(wrapper, &ractor_proc)
+  ObjectSpace.define_finalizer(wrapper, &finalizer_proc)
 end
 
 class Wrapper
@@ -146,14 +144,12 @@ class Wrapper
       end
 
       return_port = Ractor::Port.new
-      message = [:add, w, ractor, return_port]
+      message = [:add, w.object_id, ractor]
 
-      CLEANUP_RACTOR.send(message, move: true)
-      w = return_port.receive
-      return_port.close
+      CLEANUP_RACTOR.send(message)
       w.instance_variable_set(:@ractor_id, ractor.object_id)
 
-      setup_finalizer(wrapper)
+      setup_finalizer(w)
 
       sleep 1
 
