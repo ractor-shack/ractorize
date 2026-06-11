@@ -292,7 +292,7 @@ module Ractorize
         # ::Kernel.puts "done looking for ractorized_objects"
 
         puts "closing for object #{object}"
-        return_port.<<(object, move: true)
+        return_port&.<<(object, move: true)
         method_name = method_args = opts = return_port = block_given = nil
         close
         # Ractorize.resolve_all_thunks(object)
@@ -352,6 +352,8 @@ module Ractorize
           end
         end
       end
+
+      nil
     rescue => e
       puts "WAIT WTF NOT HANDLED??? #{e}"
       raise e

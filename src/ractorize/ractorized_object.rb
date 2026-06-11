@@ -58,30 +58,36 @@ module Ractorize
 
           if ractorized_objects
             ractor = ractorized_objects[id]
-            puts "found ractor yaaaaaaaaay!!! #{ractor}"
+            if ractor
+              puts "found ractor yaaaaaaaaay!!! #{ractor}"
+
+              if ractor.default_port.closed?
+                puts "already closed so doing nothing"
+              else
+                puts "sending __close__"
+                # return_port = ::Ractor::Port.new
+                return_port = nil
+                ractor << [:__close__, nil, nil, return_port, nil].freeze
+                puts "sent __close__"
+                begin
+                  # object = return_port.receive
+                  # puts "got object from __close__"
+                  # Ractorize.each_thunk(object, &:abandoned!)
+                  # Ractorize.each_ractorized_object(object) do
+                  #   it.__close__
+                  # rescue ::Ractor::ClosedError
+                  #   # do nothing
+                  # end
+                rescue Ractor::ClosedError
+                  # do nothing
+                end
+                # ractor.join
+                # ::Ractorize::RactorizedObject.abandon_thunks(id)
+              end
+            else
+              puts "hmmm no ractor found in finalizer??"
+            end
           end
-          # if ractor.default_port.closed?
-          #   puts "already closed so doing nothing"
-          # else
-          #   puts "sending __close__"
-          #   return_port = ::Ractor::Port.new
-          #   ractor << [:__close__, nil, nil, return_port, nil].freeze
-          #   puts "sent __close__"
-          #   begin
-          #     object = return_port.receive
-          #     puts "got object from __close__"
-          #     Ractorize.each_thunk(object, &:abandoned!)
-          #     Ractorize.each_ractorized_object(object) do
-          #       it.__close__
-          #     rescue ::Ractor::ClosedError
-          #       # do nothing
-          #     end
-          #   rescue Ractor::ClosedError
-          #     # do nothing
-          #   end
-          #   # ractor.join
-          #   # ::Ractorize::RactorizedObject.abandon_thunks(id)
-          # end
         end
       end
 
