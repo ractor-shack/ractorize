@@ -83,6 +83,7 @@ CLEANUP_RACTOR = Ractor.new(name: "cleanup ractor") do
       id_to_portlike[object_or_id] = port_like
       port_like = nil
       object_or_id = nil
+      return_port << true
       return_port = nil
     when :clean_up
       port_like = id_to_portlike[object_or_id]
@@ -127,7 +128,7 @@ class Wrapper
       end
 
       return_port = Ractor::Port.new
-      message = [:add, w.object_id, ractor, return_port]
+      message = [:add, w.object_id, ractor, return_port].freeze
 
       CLEANUP_RACTOR.send(message)
       return_port.receive
