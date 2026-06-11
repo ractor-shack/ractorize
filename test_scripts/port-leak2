@@ -4,12 +4,6 @@ require "bundler/setup"
 require "irb"
 require "ractorize"
 
-class Doubler
-  def set(integer) = @i = integer
-  def get = @i
-  def double = @i *= 2
-end
-
 def ractor_and_port_counts
   total_ractor_count = 0
   total_ractor_port_count = 0
@@ -32,23 +26,46 @@ end
 
 pp ractor_and_port_counts
 
-doubler = Ractorize[Doubler].new
+require "weakref"
+
+port = Ractor::Port.new
+t = Ractorize::Thunk.new(port)
+
+20.times do
+  GC.start
+  ractor_and_port_counts
+end
 
 pp ractor_and_port_counts
-GC.start
+
+puts "setting weakrefs"
+port = WeakRef.new(port)
+t = WeakRef.new(t)
+
+20.times do
+  GC.start
+  ractor_and_port_counts
+end
+
 pp ractor_and_port_counts
 
-doubler.set(10)
+puts "closing port with weakrefs"
+port.close
+
+20.times do
+  GC.start
+  ractor_and_port_counts
+end
 
 pp ractor_and_port_counts
-GC.start
-pp ractor_and_port_counts
 
-doubler = nil
+puts "going to call abandon"
+t.abandon!
+puts "abandon done"
 
-GC.start
-pp ractor_and_port_counts
-GC.start
-pp ractor_and_port_counts
+20.times do
+  GC.start
+  ractor_and_port_counts
+end
 
-puts "at bottom of script"
+pp ractor_and_port_counts

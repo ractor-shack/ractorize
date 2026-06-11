@@ -16,8 +16,8 @@ end
 
 group :development, :test do
   gem "bigdecimal"
-  gem "pry"
-  gem "pry-byebug"
+  # gem "pry"
+  # gem "pry-byebug"
   # TODO: Just adding this to suppress warnings seemingly coming from pry-byebug. Can probably remove this once
   # pry-byebug has irb as a gem dependency
   gem "irb"

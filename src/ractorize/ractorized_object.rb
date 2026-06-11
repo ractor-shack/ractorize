@@ -4,6 +4,52 @@ require_relative "thunk"
 module Ractorize
   class RactorizedObject < BasicObject
     class << self
+      def track_thunk(ractorized_object, thunk)
+        ractorized_object_id = ractorized_object.__object_id__
+        puts "tracking a thunk!!! #{ractorized_object_id}"
+        tracked_thunks = Ractor[:tracked_thunks] ||= {}
+        thunks = tracked_thunks[ractorized_object_id] ||= []
+        thunks << thunk
+
+        tracked_thunks = Ractor[:thunks_to_ractorized_objects] ||= {}
+        tracked_thunks[thunk] = ractorized_object_id
+      end
+
+      def untrack_thunk(thunk)
+        ractorized_object_id = Ractor[:thunks_to_ractorized_objects]&.[](thunk)
+
+        if ractorized_object_id
+          Ractor[:tracked_thunks].delete(ractorized_object_id)
+        end
+      end
+
+      def abandon_thunk(thunk)
+        ractorized_object_id = Ractor[:thunks_to_ractorized_objects]&.[](thunk)
+
+        if ractorized_object_id
+          thunk = Ractor[:tracked_thunks][ractorized_object_id].delete(thunk)
+          thunk.abandon!
+        end
+      end
+
+      def abandon_thunks(ractorized_object_id)
+        puts "abandon thunks called for #{ractorized_object_id}"
+        tracked_thunks = Ractor[:tracked_thunks]
+
+        if tracked_thunks
+          thunks = tracked_thunks[ractorized_object_id]
+
+          if thunks
+            puts "abandoning #{thunks.size} thunks!!"
+            thunks.each do |thunk|
+              Ractor[:thunks_to_ractorized_objects].delete(thunk)
+              thunk.abandon!
+            end
+            tracked_thunks[ractorized_object_id] = nil
+          end
+        end
+      end
+
       def setup_finalizer_proc(ractor)
         proc do |id|
           puts "finalizing a ractorized object with #{id} with ractor #{ractor}"
@@ -13,6 +59,9 @@ module Ractorize
             puts "sending __close__"
             ractor << :__close__
             puts "sent __close__"
+            ractor.join
+            puts "calling abandon thunks!"
+            ::Ractorize::RactorizedObject.abandon_thunks(id)
           end
         rescue Ractor::ClosedError
           puts "it raised ClosedError"
@@ -81,6 +130,7 @@ module Ractorize
         # :nocov:
       end
 
+      __object_id__
       ::Object.instance_method(:freeze).bind(self).call
     end
 
@@ -91,25 +141,27 @@ module Ractorize
       # hmmm can't undefine this on self since we are frozen.
       # Do we really need to freeze our self? We won't be shareable if we're not frozen ugg.
       # ::ObjectSpace.undefine_finalizer(self)
-      v = method_missing(:__close__)
+      method_missing(:__close__)
 
-      ::Ractorize.each_thunk(v) do |t|
-        ::Kernel.puts "found a thunk in close yay!!!"
-      end
-      ::Kernel.puts "done looking for thunks"
-
-      v
       #       end
     end
 
     def __join__
+      ::Kernel.puts "__close__"
       object = __close__
+      ::Kernel.puts "__value__"
+      v = object.__value__
+      ::Kernel.puts "join"
       @ractor.join
-      object.__value__
+      ::Kernel.puts "got value"
+      v
     end
 
     def method_missing(method_name, *args, **opts, &block)
+      ::Kernel.puts method_name
       if @ractor.default_port.closed? # && method_name != :__close__ && method_name != :__join__
+        # return if method_name == :__close__
+
         ::Kernel.raise ::Ractor::ClosedError,
                        "You already closed this Ractorized instance of #{@__target_class__}!\n" \
                        "No more methods can be sent to it but you sent #{method_name}"
@@ -185,6 +237,8 @@ module Ractorize
         value
       else
         Thunk.new(return_port)
+        # ::Ractorize::RactorizedObject.track_thunk(self, thunk)
+
       end
     end
 
@@ -204,7 +258,14 @@ module Ractorize
     def ==(other) = method_missing(:==, other)
     def !=(other) = method_missing(:==, other)
     def ! = method_missing(:!)
-    def equal?(other) = method_missing(:equal?, other)
+    def eql?(other) = method_missing(:eql?, other)
+    # def equal?(other) = method_missing(:equal?, other)
+
+    def __object_id__
+      return @__object_id__ if defined?(@__object_id__)
+
+      @__object_id__ = ::Object.instance_method(:object_id).bind_call(self)
+    end
 
     def to_s = inspect
 

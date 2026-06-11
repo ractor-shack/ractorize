@@ -18,12 +18,15 @@ module Ractorize
     attr_accessor :__return_value_port__, :__ractor__
 
     def initialize(return_value_port)
+      ::Kernel.puts "setting port"
       # self.__ractor__ = ::Ractor.current
       self.__return_value_port__ = return_value_port
       # garbage_collectable = ::Object.new
 
+      ::Kernel.puts "setting finalizer"
       # ::Ractorize::Thunk.setup_finalizer(self) # , return_value_port)
 
+      ::Kernel.puts "done with initialize!"
       # garbage_collectable.freeze
       # @__garbage_collectable__ = garbage_collectable
     end
@@ -32,18 +35,33 @@ module Ractorize
       # is this actually necessary?? Seems so?
     end
 
-    def method_missing(...)
+    def method_missing(method_name, ...)
+      ::Kernel.puts "thunk method missing handling #{method_name}"
       __value__.__send__(...)
     end
 
-    def abandoned!
+    def abandon!
       ::Kernel.puts "aandoned!"
+
       unless defined?(@__resolving_ractor__)
         ::Kernel.puts "closing in abandoned!!"
       end
-      __return_value_port__&.close
-      @__resolving_ractor__&.<<(:close)
-      @__resolving_ractor__ = nil
+      if __return_value_port__
+        ::Kernel.puts "abandoning and port is present, so closing it!"
+        begin
+          __return_value_port__.close
+        rescue Ractor::ClosedError
+          # do nothing
+        end
+        self.__return_value_port__ = nil
+      end
+
+      if @__resolving_ractor__
+        @__resolving_ractor__ << :close
+        @__resolving_ractor__ = nil
+      end
+
+      nil
     end
 
     def respond_to_missing?(method_name, include_all = false)
@@ -53,11 +71,17 @@ module Ractorize
     def resolved? = !!defined?(@__resolving_ractor__)
 
     def __value__
+      ::Kernel.puts "uh oh, __value__ called hmm..."
       return @__value__ if defined?(@__value__)
 
       @__value__ = __resolving_ractor__.join.value
 
       @__resolving_ractor__ = nil
+      self.__ractor__ = nil
+      __return_value_port__&.close
+      self.__return_value_port__ = nil
+
+      ::Object.instance_method(:freeze).bind(self).call
 
       return @__value__
       #
@@ -91,25 +115,15 @@ module Ractorize
       return @__resolving_ractor__ if defined?(@__resolving_ractor__)
 
       @__resolving_ractor__ = ::Ractor.new do
-        value = nil
+        action, value = receive
 
-        ::Kernel.loop do
-          action = receive
-
-          case action
-          when :close
-            close
-          when :value
-            value = receive
-            break
-          else
-            ::Kernel.raise "Not sure what to do with #{action}"
-          end
-        rescue => e
-          ::Kernel.raise "wtf didn't handle #{e} in resolving ractor"
+        unless action == :close || action == :value
+          ::Kernel.raise "Not sure what to do with #{action}"
         end
 
         value
+      rescue => e
+        ::Kernel.raise "wtf didn't handle #{e} in resolving ractor"
       end
 
       start_resolving_ractor(__return_value_port__)
@@ -123,10 +137,16 @@ module Ractorize
 
     def start_resolving_ractor(p)
       ::Thread.new do
-        @__resolving_ractor__ << :value
-        @__resolving_ractor__ << p.receive
-        @__resolving_ractor__ << :close
-        p.close
+        begin
+          @__resolving_ractor__ << [:value, p.receive].freeze
+        rescue ::Ractor::ClosedError
+          # do nothing
+        end
+        begin
+          p.close
+        rescue ::Ractor::ClosedError
+          # do nothing
+        end
         nil
       end
     end
@@ -134,6 +154,7 @@ module Ractorize
     def ! = !__value__
     def ==(other) = __value__ == other || super
     def !=(other) = __value__ != other || super
-    def equal?(other) = __value__.equal?(other) || super
+    # def eql?(other) = method_missing(:eql?, other) || super
+    # def equal?(other) = __value__.equal?(other) || super
   end
 end

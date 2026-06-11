@@ -155,29 +155,12 @@ module Ractorize
       to_move(target_class, args)
     end
 
-    def each_thunk(structure, seen = Set.new, &block)
-      return block.call(structure) if Thunk === structure
-      return if seen.include?(structure)
+    def each_thunk(structure, seen = Set.new, &)
+      each_instance_of(Thunk, structure, seen, &)
+    end
 
-      seen << structure
-
-      case structure
-      when Array
-        structure.each { each_thunk(it, seen, &block) }
-      when Hash
-        each_thunk(structure.keys, seen, &block)
-        each_thunk(structure.values, seen, &block)
-      when Struct
-        each_thunk(structure.values, seen, &block)
-      else
-        ivarsget = ::Object.instance_method(:instance_variables)
-        iget = ::Object.instance_method(:instance_variable_get)
-
-        ivarsget.bind(structure).call.each do |var|
-          each_thunk(iget.bind(structure).call(var), seen, &block)
-        end
-      end
-      nil
+    def each_ractorized_object(structure, seen = Set.new, &)
+      each_instance_of(RactorizedObject, structure, seen, &)
     end
 
     def extract_args(port_like)
@@ -208,6 +191,40 @@ module Ractorize
       end
 
       [args, opts, block]
+    end
+
+    private
+
+    def each_instance_of(klass, structure, seen = Set.new, &block)
+      if klass === structure
+        puts "yielding it!!"
+        block.call(structure)
+      end
+      return if seen.include?(structure)
+
+      seen << structure
+
+      case structure
+      when Array
+        structure.each { each_instance_of(klass, it, seen, &block) }
+      when Hash
+        each_thunk(structure.keys, seen, &block)
+        each_thunk(structure.values, seen, &block)
+      when Struct
+        each_thunk(structure.values, seen, &block)
+      else
+        ivarsget = ::Object.instance_method(:instance_variables)
+        iget = ::Object.instance_method(:instance_variable_get)
+
+        ivarsget.bind(structure).call.each do |var|
+          puts "checking #{var} for #{klass}"
+          value = iget.bind(structure).call(var)
+          puts "value is nil? #{NilClass === value}"
+          each_instance_of(klass, value, seen, &block)
+        end
+      end
+
+      nil
     end
   end
 
@@ -243,7 +260,7 @@ module Ractorize
     end
 
     puts "wrapping #{object.object_id}"
-    ObjectSpace.define_finalizer(object, &whatever_finalizer_proc)
+    # ObjectSpace.define_finalizer(object, &whatever_finalizer_proc)
 
     loop do
       method_name = method_args = opts = return_port = block_given = nil
@@ -260,10 +277,17 @@ module Ractorize
           puts "closing and object is a ractorized object"
         end
 
+        ::Kernel.puts "about to look for thunk"
         ::Ractorize.each_thunk(object) do |t|
           ::Kernel.puts "found a thunk in close yay!!!"
         end
         ::Kernel.puts "done looking for thunks"
+
+        ::Kernel.puts "looking for ractorized_objects"
+        ::Ractorize.each_ractorized_object(object) do |t|
+          ::Kernel.puts "found a ractorized_object in close yay!!!"
+        end
+        ::Kernel.puts "done looking for ractorized_objects"
 
         puts "closing for object #{object}"
         return_port&.<<(object, move: true)

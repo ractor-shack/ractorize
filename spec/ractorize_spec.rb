@@ -410,13 +410,15 @@ RSpec.describe Ractorize do
           end
         end
 
-        it "resolves the inner thunk" do # , :focus do
+        it "resolves the inner thunk", :focus do
           outer = described_class[outer_class].new
           # expect(outer.inner.foo.length).to eq(4)
 
           # expect(Ractorize::Thunk === outer.inner.foo.length).to be true
           # expect(outer.inner).to be_a(Inner)
-          expect(Ractorize::Thunk === outer.inner).to be true
+          inner = outer.inner
+          expect(Ractorize::Thunk === inner).to be true
+          # puts inner
           skip
           expect(Ractorize::Thunk === outer.length).to be true
           expect(outer.length).to eq(4)
