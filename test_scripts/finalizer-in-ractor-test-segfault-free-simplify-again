@@ -1,0 +1,203 @@
+#!/usr/bin/env ruby
+
+require "timeout"
+
+puts Ruby::VERSION
+
+def ractor_and_port_counts(silent: false)
+  total_ractor_count = total_ractor_port_count = open_ractor_count = open_ractor_port_count = 0
+
+  ObjectSpace.each_object do |object|
+    case object
+    when Ractor
+      puts "exists: #{object}"
+      total_ractor_count += 1
+      open_ractor_count += 1 unless object.default_port.closed?
+    when Ractor::Port
+      total_ractor_port_count += 1
+      open_ractor_port_count += 1 unless object.closed?
+    end
+  end
+
+  [total_ractor_count, open_ractor_count, total_ractor_port_count, open_ractor_port_count]
+end
+
+def show_ractor_counts(silent: false)
+  10.times do
+    GC.start
+    sleep 0.01
+  end
+  pp ractor_and_port_counts(silent:) unless silent
+end
+
+def finalize_proc
+  proc do |id|
+    puts "going to clean up!! #{id}"
+    CLEANUP_RACTOR << [:clean_up, id].freeze
+  rescue
+    puts "hmmm cleanup ractor already closed??"
+    Ractor::ClosedError
+  end
+end
+
+RACTOR_TRACKER = Ractor.new(name: "tracker") do
+  id_to_ractor = {}
+
+  loop do
+    action = ractor_or_id = return_port = nil
+    action, ractor_or_id, return_port = receive
+
+    case action
+    when :put
+      puts "adding #{ractor_or_id.object_id}! #{ractor_or_id}"
+      id_to_ractor[ractor_or_id.object_id] = ractor_or_id
+    when :get
+      puts "getting #{ractor_or_id}"
+      return_port.send(id_to_ractor[ractor_or_id])
+    when :delete
+      ractor = id_to_ractor.delete(ractor_or_id)
+
+      begin
+        ractor << :close
+      rescue
+        Ractor::ClosedError
+      end
+    when :close
+      break
+    else
+      raise "not sure how to handle #{action}"
+    end
+  end
+
+  nil
+end
+
+CLEANUP_RACTOR = Ractor.new(name: "cleanup ractor") do
+  id_to_portlike = ObjectSpace::WeakMap.new
+
+  loop do
+    action = object_or_id = port_like = nil
+    action, object_or_id, port_like, return_port = receive
+
+    case action
+    when :close
+      close
+      break
+    when :add
+      id_to_portlike[object_or_id.object_id] = port_like
+      port_like = nil
+      ObjectSpace.define_finalizer(object_or_id, &finalize_proc)
+      return_port.send(object_or_id, move: true)
+      object_or_id = nil
+      return_port = nil
+    when :clean_up
+      puts "going to cleanup #{object_or_id}!"
+      port_like = id_to_portlike[object_or_id]
+
+      if port_like
+        puts "it has port-like #{port_like}"
+        begin
+          puts "attempting close!"
+          RACTOR_TRACKER << [:delete, port_like.object_id]
+          port_like << :close
+          puts "worked!"
+        rescue Ractor::ClosedError
+          puts "failed to close! already closed??"
+        end
+        port_like = nil
+      else
+        puts "it has no port-like"
+      end
+    else
+      raise "wtf, can't handle #{action}"
+    end
+  end
+
+  nil
+end
+
+def finalizer_proc
+  proc do |id|
+    CLEANUP_RACTOR << [:clean_up, id].freeze
+  end
+end
+
+def setup_finalizer(wrapper)
+  ObjectSpace.define_finalizer(wrapper, &ractor_proc)
+end
+
+class Wrapper
+  class << self
+    def new(object)
+      w = super()
+
+      ractor = Ractor.new(name: "wrapper ractor for #{object.object_id}") do
+        o = receive
+        receive
+        o = nil
+      end
+
+      RACTOR_TRACKER << [:put, ractor].freeze
+
+      if Ractor.shareable?(object)
+        ractor.send(object)
+      else
+        ractor.send(object, move: true)
+      end
+
+      return_port = Ractor::Port.new
+      message = [:add, w, ractor, return_port]
+
+      CLEANUP_RACTOR.send(message, move: true)
+      w = return_port.receive
+      return_port.close
+      w.instance_variable_set(:@ractor_id, ractor.object_id)
+
+      setup_finalizer(wrapper)
+
+      sleep 1
+
+      w.freeze
+    end
+  end
+
+  def ractor
+    return_port = Ractor::Port.new
+    RACTOR_TRACKER << [:get, @ractor_id, return_port].freeze
+    return_port.receive
+  end
+end
+
+class Outer
+  def initialize = @inner = Wrapper.new(Inner.new)
+end
+
+class Inner; end
+
+show_ractor_counts
+
+outer = Wrapper.new(Outer.new)
+show_ractor_counts
+
+puts "going to set outer to nil..."
+# outer.ractor << :close
+outer = nil
+
+# Removing the following line makes it so it only segfaults sometimes instead of everytime
+show_ractor_counts
+
+show_ractor_counts
+puts "will close cleanup and tracker ractor..."
+CLEANUP_RACTOR << :close
+CLEANUP_RACTOR = nil
+RACTOR_TRACKER << :close
+RACTOR_TRACKER = nil
+
+begin
+  Timeout.timeout(5) do
+    show_ractor_counts(silent: true)
+  end
+rescue Timeout::Error
+end
+
+show_ractor_counts
