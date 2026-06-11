@@ -3,13 +3,30 @@
 module Ractorize
   class Thunk < BasicObject
     class << self
-      def setup_finalizer(garbage_collectable)
+      def store_port(thunk_id, port)
+        thunk_id_to_port = Ractor[:thunk_id_to_port] ||= {}
+        thunk_id_to_port[thunk_id] = port
+      end
+
+      def port_for(thunk_id)
+        Ractor[:thunk_id_to_port]&.[](thunk_id)
+      end
+
+      def remove_port_for(thunk_id)
+        Ractor[:thunk_id_to_port]&.delete(thunk_id)
+      end
+
+      def finalizer_proc(port)
+        proc do |id|
+          puts "closing #{port} in thunk finalizer for #{id}"
+          port
+        end
+      end
+
+      def setup_finalizer(garbage_collectable, port)
         # port_ref = WeakRef.new(port)
 
-        ::ObjectSpace.define_finalizer(garbage_collectable) do |id|
-          ::Kernel.puts "finalizing a thunk with object id #{id}!"
-          # port_ref.close
-        end
+        ::ObjectSpace.define_finalizer(garbage_collectable, &finalizer_proc(port))
       end
     end
 
@@ -18,15 +35,16 @@ module Ractorize
     attr_accessor :__return_value_port__, :__ractor__
 
     def initialize(return_value_port)
-      ::Kernel.puts "setting port"
       # self.__ractor__ = ::Ractor.current
+      @__gc_collectable__ = garbage_collectable = ::Object.new
+
       self.__return_value_port__ = return_value_port
-      # garbage_collectable = ::Object.new
 
-      ::Kernel.puts "setting finalizer"
-      # ::Ractorize::Thunk.setup_finalizer(self) # , return_value_port)
+      @__thunk_id__ = ::Object.instance_method(:object_id).bind_call(self)
+      # ::Ractorize::Thunk.store_port(@__thunk_id__, return_value_port)
 
-      ::Kernel.puts "done with initialize!"
+      ::Ractorize::Thunk.setup_finalizer(garbage_collectable, return_value_port)
+
       # garbage_collectable.freeze
       # @__garbage_collectable__ = garbage_collectable
     end
@@ -37,7 +55,7 @@ module Ractorize
 
     def method_missing(method_name, ...)
       ::Kernel.puts "thunk method missing handling #{method_name}"
-      __value__.__send__(...)
+      __value__.__send__(method_name, ...)
     end
 
     def abandon!
@@ -71,10 +89,23 @@ module Ractorize
     def resolved? = !!defined?(@__resolving_ractor__)
 
     def __value__
-      ::Kernel.puts "uh oh, __value__ called hmm..."
+      # ::Kernel.puts "uh oh, __value__ called hmm..."
       return @__value__ if defined?(@__value__)
 
-      @__value__ = __resolving_ractor__.join.value
+      #
+      # port = ::Ractorize::Thunk.remove_port_for(@__thunk_id__)
+      # @__value__ = begin
+      #   raise "wtf" unless port
+      #
+      #   port.receive
+      # ensure
+      #   port.close
+      # end
+      #
+      # port.close
+      # return @__value__
+
+      @__value__ = __return_value_port__.receive
 
       @__resolving_ractor__ = nil
       self.__ractor__ = nil

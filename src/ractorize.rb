@@ -270,31 +270,32 @@ module Ractorize
 
       case method_name
       when :__close__
-        if Thunk === object
-          puts "closing and object is a thunk "
-        end
-        if RactorizedObject === object
-          puts "closing and object is a ractorized object"
-        end
-
-        ::Kernel.puts "about to look for thunk"
-        ::Ractorize.each_thunk(object) do |t|
-          ::Kernel.puts "found a thunk in close yay!!!"
-        end
-        ::Kernel.puts "done looking for thunks"
-
-        ::Kernel.puts "looking for ractorized_objects"
-        ::Ractorize.each_ractorized_object(object) do |t|
-          ::Kernel.puts "found a ractorized_object in close yay!!!"
-        end
-        ::Kernel.puts "done looking for ractorized_objects"
+        # if Thunk === object
+        #   puts "closing and object is a thunk "
+        # end
+        # if RactorizedObject === object
+        #   puts "closing and object is a ractorized object"
+        # end
+        #
+        # ::Kernel.puts "about to look for thunk"
+        # ::Ractorize.each_thunk(object) do |t|
+        #   ::Kernel.puts "found a thunk in close yay!!!"
+        # end
+        # ::Kernel.puts "done looking for thunks"
+        #
+        # ::Kernel.puts "looking for ractorized_objects"
+        # ::Ractorize.each_ractorized_object(object) do |t|
+        #   ::Kernel.puts "found a ractorized_object in close yay!!!"
+        # end
+        # ::Kernel.puts "done looking for ractorized_objects"
 
         puts "closing for object #{object}"
-        return_port&.<<(object, move: true)
+        return_port.<<(object, move: true)
         method_name = method_args = opts = return_port = block_given = nil
         close
         # Ractorize.resolve_all_thunks(object)
         object = nil
+        puts "done with __close__"
         break
       else
         if method_name == :__invoke_arg_by_arg__
@@ -330,6 +331,7 @@ module Ractorize
           return_port << [:return, value].freeze
         else
           value = object.__send__(method_name, *method_args, **opts)
+          method_name = method_args = opts = block_given = nil
           value = value.__value__ while Ractorize::Thunk === value
 
           begin
@@ -354,6 +356,7 @@ module Ractorize
     end
 
     # object
+    nil
   rescue => e
     # :nocov:
     puts

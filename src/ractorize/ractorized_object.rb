@@ -57,15 +57,31 @@ module Ractorize
             puts "already closed so doing nothing"
           else
             puts "sending __close__"
-            ractor << :__close__
+            return_port = Ractor::Port.new
+            ractor << [:__close__, nil, nil, return_port, nil].freeze
             puts "sent __close__"
-            ractor.join
-            puts "calling abandon thunks!"
-            ::Ractorize::RactorizedObject.abandon_thunks(id)
+            object = return_port.receive
+            puts "got object from __close__"
+            # ractor.join
+            # Ractorize.each_thunk(object, &:abandoned!)
+            # Ractorize.each_ractorized_object(object, &:__close__)
+            # # ::Ractorize::RactorizedObject.abandon_thunks(id)
           end
-        rescue Ractor::ClosedError
-          puts "it raised ClosedError"
-          # intentionally swallowing this up
+
+          ::Kernel.puts "Calling ractorized object finalizer in #{Ractor.current}"
+          # TODO: don't blow them all away! Only the ones for this ractorized object!
+          ::Ractor[:thunk_id_to_port]&.each_key do |thunk_id|
+            ::Kernel.puts "closing a port in __close__"
+            port = ::Ractorize::Thunk.remove_port_for(thunk_id)
+
+            unless port
+              ::Kernel.puts "strange... didn't find a port??"
+            end
+            port&.close
+          rescue Ractor::ClosedError
+            # do nothing
+          end
+          Ractor[:thunk_id_to_port] = nil
         end
       end
 
@@ -135,13 +151,15 @@ module Ractorize
     end
 
     def __close__
+      return @__final_value__ if defined?(@__final_value__)
+
       # if @ractor.default_port.closed?
       #   @ractor.value
       # else
       # hmmm can't undefine this on self since we are frozen.
       # Do we really need to freeze our self? We won't be shareable if we're not frozen ugg.
       # ::ObjectSpace.undefine_finalizer(self)
-      method_missing(:__close__)
+      @__final_value__ = method_missing(:__close__)
 
       #       end
     end
@@ -158,13 +176,15 @@ module Ractorize
     end
 
     def method_missing(method_name, *args, **opts, &block)
+      return @__final_value__ if defined?(@__final_value__)
+
       ::Kernel.puts method_name
       if @ractor.default_port.closed? # && method_name != :__close__ && method_name != :__join__
         # return if method_name == :__close__
 
-        ::Kernel.raise ::Ractor::ClosedError,
-                       "You already closed this Ractorized instance of #{@__target_class__}!\n" \
-                       "No more methods can be sent to it but you sent #{method_name}"
+        @__final_value__ ||= @ractor.value
+
+        return @__final_value__.send(method_name, *args, **opts, &block)
       end
 
       return_port = ::Ractor::Port.new
@@ -226,7 +246,8 @@ module Ractorize
       # Let's assume the user would rather block on all predicate methods than
       # incorrectly get a non-truthy value (thunk is always truthy even if it evaluates as nil/false)
       elsif method_name == :== || method_name == :! || method_name == :!= ||
-            method_name == :inspect || method_name == :to_s || method_name.end_with?("?")
+            method_name == :inspect || method_name == :to_s ||
+            method_name.end_with?("?") || method_name == :hash
         value = return_port.receive
 
         return_port.close
@@ -236,6 +257,7 @@ module Ractorize
 
         value
       else
+        ::Kernel.puts "thunk created for port #{return_port} in #{::Ractor.current} for #{method_name}"
         Thunk.new(return_port)
         # ::Ractorize::RactorizedObject.track_thunk(self, thunk)
 
