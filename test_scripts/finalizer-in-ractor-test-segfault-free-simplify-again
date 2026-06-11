@@ -114,11 +114,11 @@ CLEANUP_RACTOR = Ractor.new(name: "cleanup ractor") do
   nil
 end
 
-def finalizer_proc
-  proc do |id|
-    CLEANUP_RACTOR << [:clean_up, id].freeze
-  end
-end
+# def finalizer_proc
+#   proc do |id|
+#     CLEANUP_RACTOR << [:clean_up, id].freeze
+#   end
+# end
 
 def setup_finalizer(wrapper)
   ObjectSpace.define_finalizer(wrapper, &finalizer_proc)
