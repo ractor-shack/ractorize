@@ -1,13 +1,6 @@
 # TODO: make use of autoload?
 require_relative "ractorize/ractorized_object"
 require_relative "ractorize/ractorized_class"
-require "weakref"
-
-def whatever_finalizer_proc
-  proc do |id|
-    puts "closing wrapped object with id #{id} "
-  end
-end
 
 module Ractorize
   class << self
@@ -257,12 +250,7 @@ module Ractorize
                # :nocov:
              end
 
-    if Ractorize::Thunk === object
-      raise "wtf"
-    end
-
-    puts "wrapping #{object.object_id}"
-    # ObjectSpace.define_finalizer(object, &whatever_finalizer_proc)
+    puts "ractorized object ractor created for #{target_class}<#{object.object_id}> in #{self}"
 
     loop do
       method_name = method_args = opts = return_port = block_given = nil

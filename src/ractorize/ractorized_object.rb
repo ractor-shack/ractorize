@@ -3,155 +3,25 @@ require_relative "thunk"
 
 module Ractorize
   class RactorizedObject < BasicObject
-    class << self
-      def track_thunk2(ractorized_object_id, thunk)
-        ractorized_id_to_thunks = Ractor[:ractorized_id_to_thunks] ||= {}
-
-        thunks = ractorized_id_to_thunks[ractorized_object_id] ||= ObjectSpace::WeakMap.new
-
-        thunks[thunk.__thunk_id__] = thunk
-      end
-
-      def abandon_all_thunks2(ractorized_object_id)
-        ractorized_id_to_thunks = Ractor[:ractorized_id_to_thunks]
-
-        puts "abandoning thunks "
-        if ractorized_id_to_thunks
-          thunks = ractorized_id_to_thunks[ractorized_object_id]
-
-          if thunks
-            puts "abandoning #{thunks.size} thunks "
-            thunks.each_value(&:abandoned!)
-            ractorized_id_to_thunks[ractorized_object_id] = nil
-          else
-            puts "entry found but had no thunks to abandon??"
-          end
-        else
-          puts "hmmm no thunks at all??"
-        end
-      end
-
-      def track_thunk(ractorized_object, thunk)
-        ractorized_object_id = ractorized_object.__object_id__
-        puts "tracking a thunk!!! #{ractorized_object_id}"
-        tracked_thunks = Ractor[:tracked_thunks] ||= {}
-        thunks = tracked_thunks[ractorized_object_id] ||= []
-        thunks << thunk
-
-        tracked_thunks = Ractor[:thunks_to_ractorized_objects] ||= {}
-        tracked_thunks[thunk] = ractorized_object_id
-      end
-
-      def untrack_thunk(thunk)
-        ractorized_object_id = Ractor[:thunks_to_ractorized_objects]&.[](thunk)
-
-        if ractorized_object_id
-          Ractor[:tracked_thunks].delete(ractorized_object_id)
-        end
-      end
-
-      def abandon_thunk(thunk)
-        ractorized_object_id = Ractor[:thunks_to_ractorized_objects]&.[](thunk)
-
-        if ractorized_object_id
-          thunk = Ractor[:tracked_thunks][ractorized_object_id].delete(thunk)
-          thunk.abandon!
-        end
-      end
-
-      def abandon_thunks(ractorized_object_id)
-        puts "abandon thunks called for #{ractorized_object_id}"
-        tracked_thunks = Ractor[:tracked_thunks]
-
-        if tracked_thunks
-          thunks = tracked_thunks[ractorized_object_id]
-
-          if thunks
-            puts "abandoning #{thunks.size} thunks!!"
-            thunks.each do |thunk|
-              Ractor[:thunks_to_ractorized_objects].delete(thunk)
-              thunk.abandon!
-            end
-            tracked_thunks[ractorized_object_id] = nil
-          end
-        end
-      end
-
-      def setup_finalizer_proc
-        proc do |id|
-          puts "finalizing a ractorized object with #{id}"
-
-          ractorized_objects = Ractor[:ractorized_objects]
-
-          if ractorized_objects
-            ractor = ractorized_objects[id]
-            if ractor
-              puts "found ractor yaaaaaaaaay!!! #{ractor}"
-
-              if ractor.default_port.closed?
-                puts "already closed so doing nothing"
-              else
-                puts "sending __close__"
-                # return_port = ::Ractor::Port.new
-                return_port = nil
-                ractor << [:__close__, nil, nil, return_port, nil].freeze
-                puts "sent __close__"
-                begin
-                  # object = return_port.receive
-                  # puts "got object from __close__"
-                  # Ractorize.each_thunk(object, &:abandoned!)
-                  # Ractorize.each_ractorized_object(object) do
-                  #   it.__close__
-                  # rescue ::Ractor::ClosedError
-                  #   # do nothing
-                  # end
-                rescue Ractor::ClosedError
-                  # do nothing
-                end
-                # ractor.join
-                # ::Ractorize::RactorizedObject.abandon_thunks(id)
-              end
-            else
-              puts "hmmm no ractor found in finalizer??"
-            end
-          end
-
-          abandon_all_thunks2(id)
-        end
-      end
-
-      def setup_finalizer(ractorized_object, ractor)
-        ractorized_objects = Ractor[:ractorized_objects] ||= ObjectSpace::WeakMap.new
-
-        ractorized_objects[ractorized_object.__ractorized_object_id__] = ractor
-        ObjectSpace.define_finalizer(ractorized_object, &setup_finalizer_proc)
-      end
-
-      def new(...)
-        ro = super
-
-        ::Ractorize::GarbageCollection.track_ractorized_object(ro)
-      end
-    end
-
     def initialize(mode, *args, **opts, &block)
-      @ractor = ::Ractor.new(name: "#{args.first}<#{args.first.object_id}>", &RACTOR_PROC)
-      # RactorizedObject.setup_finalizer(self, @ractor)
-      ::Ractorize::GarbageCollection.track_ractorized_object(self)
+      ractor = ::Ractor.new(name: "#{args.first}<#{args.first.object_id}>", &RACTOR_PROC)
+
+      @__ractor_id__ = ractor.object_id
 
       case mode
       when :object
-        @ractor << :object
+        ractor << :object
 
         outside_object = args.first
 
-        @__target_class__ = outside_object.class
+        @__target_class__ = Object.instance_method(:class).bind_call(outside_object)
+        puts "tracking #{@__target_class__}<#{::Object.instance_method(:object_id).bind_call(outside_object)}>"
 
         if ::Ractor.shareable?(outside_object)
-          @ractor << outside_object
+          ractor << outside_object
         else
           ::Ractorize.resolve_all_thunks(outside_object)
-          @ractor.send(outside_object, move: true)
+          ractor.send(outside_object, move: true)
         end
       when :class
         klass, *args = args
@@ -161,29 +31,29 @@ module Ractorize
         to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
 
         if to_move&.any?
-          @ractor << :class_arg_by_arg
-          @ractor << klass
+          ractor << :class_arg_by_arg
+          ractor << klass
 
           args.each do |arg|
-            @ractor << :arg
-            @ractor.send(arg, move: to_move.include?(arg))
+            ractor << :arg
+            ractor.send(arg, move: to_move.include?(arg))
           end
 
           opts.each_pair do |name, value|
-            @ractor << :kwarg
-            @ractor << name
-            @ractor.send(value, move: to_move.include?(value))
+            ractor << :kwarg
+            ractor << name
+            ractor.send(value, move: to_move.include?(value))
           end
 
           if block
-            @ractor << :block
-            @ractor << block
+            ractor << :block
+            ractor << block
           end
 
-          @ractor << :done
+          ractor << :done
         else
-          @ractor << :class
-          @ractor << [klass, args.freeze, opts.dup.freeze, block].freeze
+          ractor << :class
+          ractor << [klass, args.freeze, opts.dup.freeze, block].freeze
         end
       else
         # :nocov:
@@ -191,61 +61,31 @@ module Ractorize
         # :nocov:
       end
 
-      __object_id__
+      @__object_id__ = ::Object.instance_method(:object_id).bind_call(self)
+      ::Ractorize::GarbageCollection.track(self, ractor)
+
       ::Object.instance_method(:freeze).bind(self).call
     end
 
-    def __ractorized_object_id__
-      ::Object.instance_method(:object_id).bind_call(self)
-    end
+    attr_reader :__object_id__
 
     def __close__
-      # if @ractor.default_port.closed?
-      #   @ractor.value
-      # else
-      # hmmm can't undefine this on self since we are frozen.
-      # Do we really need to freeze our self? We won't be shareable if we're not frozen ugg.
-      # ::ObjectSpace.undefine_finalizer(self)
-      v = method_missing(:__close__).__value__
-
-      # TODO: don't blow them all away! Only the ones for this ractorized object!
-      ::Ractor[:thunk_id_to_port]&.each_key do |thunk_id|
-        ::Kernel.puts "closing a port in __close__"
-        port = ::Ractorize::Thunk.remove_port_for(thunk_id)
-
-        unless port
-          ::Kernel.puts "strange... didn't find a port??"
-        end
-        port&.close
-      rescue Ractor::ClosedError
-        # do nothing
-      end
-      ::Ractor[:thunk_id_to_port] = nil
-      #       end
-
-      v
+      method_missing(:__close__).__value__
     end
 
     def __join__
-      ::Kernel.puts "__close__"
       object = __close__
-      ::Kernel.puts "__value__"
       v = object.__value__
-      ::Kernel.puts "join"
-      @ractor.join
-      ::Kernel.puts "got value"
+      ractor.join
       v
     end
 
     def method_missing(method_name, *args, **opts, &block)
-      # return @__final_value__ if defined?(@__final_value__)
+      ::Kernel.puts "#{@__target_class__}##{method_name} called in ractorized object"
+      ractor = self.ractor
 
-      ::Kernel.puts method_name
-      if @ractor.default_port.closed? # && method_name != :__close__ && method_name != :__join__
+      if ractor.default_port.closed? # && method_name != :__close__ && method_name != :__join__
         ::Kernel.raise ::Ractor::ClosedError, "Ractorized object is already closed and cannot be used anymore"
-        # return @ractor.value if method_name == :__close__ || method_name == :__join__
-        #
-        # return @ractor.value.send(method_name, *args, **opts, &block)
       end
 
       return_port = ::Ractor::Port.new
@@ -253,7 +93,7 @@ module Ractorize
       to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
 
       if to_move&.any?
-        @ractor << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, !!block]
+        ractor << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, !!block]
 
         args_port = return_port.receive
         args_port << method_name
@@ -271,7 +111,7 @@ module Ractorize
 
         args_port << :done
       else
-        @ractor << [method_name, args.dup.freeze, opts.dup.freeze, return_port, !!block].freeze
+        ractor << [method_name, args.dup.freeze, opts.dup.freeze, return_port, !!block].freeze
       end
 
       if block
@@ -318,11 +158,7 @@ module Ractorize
 
         value
       else
-        ::Kernel.puts "creating thunk for port #{return_port} in #{::Ractor.current} for #{method_name}"
-        thunk = Thunk.new(return_port, @__target_class__, method_name)
-        ::Ractorize::RactorizedObject.track_thunk2(__ractorized_object_id__, thunk)
-        ::Kernel.puts "created thunk for port #{return_port} in #{::Ractor.current} for #{method_name}"
-        thunk
+        Thunk.new(return_port, @__target_class__, method_name)
       end
     end
 
@@ -343,24 +179,21 @@ module Ractorize
     def !=(other) = method_missing(:==, other) || super
     def ! = method_missing(:!)
     def equal?(other) = method_missing(:equal?, other) || super
-
-    def __object_id__
-      return @__object_id__ if defined?(@__object_id__)
-
-      @__object_id__ = ::Object.instance_method(:object_id).bind_call(self)
-    end
-
     def to_s = inspect
 
     def inspect
       object_id = ::Object.instance_method(:object_id).bind(self).call
-      moved_object_inspect = if @ractor.default_port.closed?
+      moved_object_inspect = if ractor.default_port.closed?
                                ::Object.instance_method(:object_id).bind_call(self)
                              else
                                method_missing(:inspect)
                              end
 
       "RactorizedObject<#{object_id}>[#{moved_object_inspect}]".freeze
+    end
+
+    def ractor
+      ::Ractorize::GarbageCollection.portlike_for(@__ractor_id__)
     end
   end
 end

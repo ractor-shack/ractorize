@@ -68,6 +68,12 @@ RACTOR_TRACKER = Ractor.new(name: "tracker") do
   nil
 end
 
+# get, put, delete, close
+# close, add, cleanup
+#
+# clean sends delete
+# put and add are called at the same time, roughly, add is more complex, so get rid of put
+
 CLEANUP_RACTOR = Ractor.new(name: "cleanup ractor") do
   id_to_portlike = ObjectSpace::WeakMap.new
 
