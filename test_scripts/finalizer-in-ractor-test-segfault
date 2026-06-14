@@ -31,7 +31,12 @@ class Wrapper
         wrapper_to_ractor = Ractor[:wrapper_to_ractor]
 
         if wrapper_to_ractor
-          wrapper_to_ractor[id]&.each_key { |ractor| ractor << :close } rescue Ractor::ClosedError
+          begin
+            wrapper_to_ractor[id]&.each_key { |ractor| ractor << :close }
+          rescue Ractor::ClosedError
+            # do nothing
+          end
+
         end
       end
     end

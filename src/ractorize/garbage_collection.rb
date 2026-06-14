@@ -81,75 +81,94 @@ module Ractorize
         thunk
       end
 
-      TRACKING_RACTOR = Ractor.new do
-        tracker = RactorizedTracker.new
+      def created_return_port(ractorized_object_id, return_value_port)
+        TRACKING_RACTOR << [
+          :created_return_port,
+          ractorized_object_id,
+          return_value_port
+        ].freeze
+      end
+    end
 
-        loop do
-          message = receive
+    TRACKING_RACTOR = Ractor.new do
+      tracker = RactorizedTracker.new
 
-          case message
-          in :put_ractor, ractorized_object_id, ractor
-            puts "going to set ractor for #{ractorized_object_id} to #{ractor}"
-            tracker.put_ractor(ractorized_object_id, ractor)
-            ractor = nil
-          in :get_ractor, ractorized_object_id, return_port
-            return_port << tracker.get_ractor(ractorized_object_id)
-            return_port = nil
-          in :delete_ractor, ractorized_object_id
-            tracker.delete_ractor(ractorized_object_id)
-          in :__close__
-            tracker = nil
-            break
-          in :construct_ractorized_object, return_port
-            args_port = Ractor::Port.new
-            return_port << args_port
+      loop do
+        puts "waiting to receive..."
+        message = receive
 
-            object = args_port.receive
+        message_type = message.is_a?(Array) ? message.first : message
+        puts "TRACKING_RACTOR: starting #{message_type} in tracking ractor!"
 
-            args_port.close
-            args_port = nil
+        case message
+        in :put_ractor, ractorized_object_id, ractor
+          puts "going to set ractor for #{ractorized_object_id} to #{ractor}"
+          tracker.put_ractor(ractorized_object_id, ractor)
+          ractor = nil
+        in :get_ractor, ractorized_object_id, return_port
+          return_port << tracker.get_ractor(ractorized_object_id)
+          return_port = nil
+        in :delete_ractor, ractorized_object_id
+          tracker.delete_ractor(ractorized_object_id)
+        in :__close__
+          tracker = nil
+          break
+        in :construct_ractorized_object, return_port
+          args_port = Ractor::Port.new
+          return_port << args_port
 
-            return_port.send(
-              tracker.construct_ractorized_object(:object, object),
-              move: true
-            )
-            args = object = return_port = nil
-          in :construct_ractorized_object_from_class, klass, return_port
-            args_port = Ractor::Port.new
-            return_port << args_port
+          object = args_port.receive
 
-            args, opts, block = ::Ractorize.extract_args(args_port)
-            args_port.close
-            args_port = nil
+          args_port.close
+          args_port = nil
 
-            return_port.send(
-              tracker.construct_ractorized_object(:class, klass, *args, **opts, &block),
-              move: true
-            )
-            args = opts = return_port = nil
-          in :construct_thunk, ractorized_object_id, return_value_port, return_port
-            return_port.send(
-              tracker.construct_thunk(ractorized_object_id, return_value_port),
-              move: true
-            )
-            return_value_port = return_port = nil
-          in :clean_up_after_ractorized_object, ractorized_object_id
-            tracker.clean_up_after_ractorized_object(ractorized_object_id)
-          in :clean_up_after_thunk, thunk_id
-            tracker.clean_up_after_thunk(thunk_id)
-          else
-            raise "couldn't handle the message #{message}!"
-          end
-        rescue => e
-          puts "wtf got error in tracking ractor loop hmmm #{e}"
-          puts e.class
-          puts e.message
-          puts e.backtrace
-          raise
+          return_port.send(
+            tracker.construct_ractorized_object(:object, object),
+            move: true
+          )
+          args = object = return_port = nil
+        in :construct_ractorized_object_from_class, klass, return_port
+          args_port = Ractor::Port.new
+          return_port << args_port
+
+          args, opts, block = ::Ractorize.extract_args(args_port)
+          args_port.close
+          args_port = nil
+
+          return_port.send(
+            tracker.construct_ractorized_object(:class, klass, *args, **opts, &block),
+            move: true
+          )
+          args = opts = return_port = nil
+        in :construct_thunk, ractorized_object_id, return_value_port, return_port
+          return_port.send(
+            tracker.construct_thunk(ractorized_object_id, return_value_port),
+            move: true
+          )
+          return_value_port = return_port = nil
+        in :clean_up_after_ractorized_object, ractorized_object_id
+          puts "TRACKING_RACTOR: got cleanup message!!"
+          tracker.clean_up_after_ractorized_object(ractorized_object_id)
+        in :clean_up_after_thunk, thunk_id
+          tracker.clean_up_after_thunk(thunk_id)
+        in :created_return_port, ractorized_object_id, return_value_port
+          tracker.created_return_port(ractorized_object_id, return_value_port)
+        else
+          raise "TRACKING_RACTOR: couldn't handle the message #{message}!"
         end
+
+        puts "TRACKING_RACTOR: done with #{message_type} in tracking ractor!"
+      rescue => e
+        puts "TRACKING_RACTOR: wtf got error in tracking ractor loop hmmm #{e}"
+        puts e.class
+        puts e.message
+        puts e.backtrace
+        raise
       end
 
-      private_constant :TRACKING_RACTOR
+      puts "TRACKING_RACTOR: hmmmm TRACKING_RACTOR is shutting down..."
     end
+
+    private_constant :TRACKING_RACTOR
   end
 end

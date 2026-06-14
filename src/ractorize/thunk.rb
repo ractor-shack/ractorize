@@ -35,7 +35,9 @@ module Ractorize
     def resolved? = !!defined?(@__resolving_ractor__)
 
     def abandon!
-      __return_value_port__&.close rescue Ractor::ClosedError
+      __return_value_port__&.close
+    rescue Ractor::ClosedError
+      # do nothing
     end
 
     def __value__

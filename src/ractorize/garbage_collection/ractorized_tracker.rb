@@ -41,9 +41,6 @@ module Ractorize
 
         thunk_id = thunk.__object_id__
 
-        return_ports = ractorized_object_id_to_return_ports[ractorized_object_id] ||= ObjectSpace::WeakMap.new
-        return_ports[thunk_id] = return_value_port
-
         thunk_id_to_ractorized_object_id[thunk_id] = ractorized_object_id
 
         setup_thunk_finalizer(thunk)
@@ -54,6 +51,7 @@ module Ractorize
       end
 
       def clean_up_after_ractorized_object(ractorized_object_id)
+        puts "cleaning up after #{ractorized_object_id} yay!!!"
         ractor = ractorized_object_id_to_ractor.delete(ractorized_object_id)
 
         if ractor
@@ -61,11 +59,15 @@ module Ractorize
 
           ports = thunk_id_to_port.values
 
-          ractor << if ports&.any?
-                      [:__abandon_ports_and_close__, [ports].freeze].freeze
-                    else
-                      :__close__
-                    end rescue Ractor::ClosedError
+          begin
+            ractor << if ports&.any?
+                        [:__abandon_ports_and_close__, ports.freeze].freeze
+                      else
+                        :__close__
+                      end
+          rescue Ractor::ClosedError
+            # do nothing
+          end
         end
       end
 
@@ -76,9 +78,18 @@ module Ractorize
 
         if ractor
           if port
-            ractor << [:__close_port__, port].freeze rescue Ractor::ClosedError
+            begin
+              ractor << [:__close_port__, port].freeze
+            rescue Ractor::ClosedError
+              # do nothing
+            end
           end
         end
+      end
+
+      def created_return_value_port(ractorized_object_id, return_value_port)
+        return_ports = ractorized_object_id_to_return_ports[ractorized_object_id] ||= ObjectSpace::WeakMap.new
+        return_ports[thunk_id] = return_value_port
       end
 
       private
@@ -87,7 +98,17 @@ module Ractorize
         proc do |ractorized_object_id|
           puts "finalizer called for #{ractorized_object_id}!!!"
           # self.class.instance.clean_up_after_ractorized_object(ractorized_object_id)
-          TRACKING_RACTOR << [:clean_up_after_ractorized_object, ractorized_object_id].freeze rescue Ractor::ClosedError
+          begin
+            TRACKING_RACTOR << [:clean_up_after_ractorized_object, ractorized_object_id].freeze
+          rescue Ractor::ClosedError
+            # do nothing
+          end
+          puts "message sent to clean up after #{ractorized_object_id}!"
+        rescue => e
+          puts e
+          puts e.backtrace
+          puts "wtf????"
+          raise "caboom!!!"
         end
       end
 
@@ -98,7 +119,11 @@ module Ractorize
       def thunk_finalize_proc
         proc do |thunk_id|
           puts "thunk finalizer called for #{thunk_id}!!!"
-          TRACKING_RACTOR << [:clean_up_after_thunk, thunk_id].freeze rescue Ractor::ClosedError
+          begin
+            TRACKING_RACTOR << [:clean_up_after_thunk, thunk_id].freeze
+          rescue Ractor::ClosedError
+            # do nothing
+          end
         end
       end
 
