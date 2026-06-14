@@ -17,7 +17,8 @@ module Ractorize
         TRACKING_RACTOR << :__close__
       end
 
-      def create_ractorized_object(*args, **opts)
+      def create_ractorized_object(object)
+        puts "creating ractorized object (in gc)"
         return_port = Ractor::Port.new
 
         TRACKING_RACTOR.send(
@@ -26,11 +27,13 @@ module Ractorize
 
         args_port = return_port.receive
 
-        args_port.send(args.first, move: true)
+        args_port.send(object, move: true)
 
         args_port = nil
         ractorized_object = return_port.receive
         return_port.close
+
+        puts "done creating it (in gc)"
         ractorized_object
       end
 

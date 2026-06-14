@@ -29,6 +29,7 @@ module Ractorize
       end
 
       def construct_ractorized_object(...)
+        puts "constructing ractorized object"
         ractorized_object = RactorizedObject.new(...)
 
         ractorized_object_id_to_ractor[ractorized_object.__object_id__] = ractorized_object.ractor
@@ -36,6 +37,7 @@ module Ractorize
         setup_ractorized_object_finalizer(ractorized_object)
         ::Object.instance_method(:freeze).bind_call(ractorized_object)
 
+        puts "ractorized object created"
         ractorized_object
       end
 
