@@ -8,7 +8,7 @@ module Ractorize
       end
 
       def new(...)
-        RactorizedObject.new(:class, target_class, ...)
+        GarbageCollection.create_ractorized_object(:class, target_class, ...)
       end
 
       def method_missing(method_name, ...)

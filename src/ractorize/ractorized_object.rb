@@ -4,7 +4,9 @@ require_relative "thunk"
 module Ractorize
   class RactorizedObject < BasicObject
     def initialize(mode, *args, **opts, &block)
+      ::Kernel.puts "creating ractor..."
       ractor = ::Ractor.new(name: "#{args.first}<#{args.first.object_id}>", &RACTOR_PROC)
+      ::Kernel.puts "ractor created!"
 
       @__ractor_id__ = ractor.object_id
 
@@ -14,7 +16,7 @@ module Ractorize
 
         outside_object = args.first
 
-        @__target_class__ = Object.instance_method(:class).bind_call(outside_object)
+        @__target_class__ = ::Object.instance_method(:class).bind_call(outside_object)
         puts "tracking #{@__target_class__}<#{::Object.instance_method(:object_id).bind_call(outside_object)}>"
 
         if ::Ractor.shareable?(outside_object)
@@ -81,18 +83,20 @@ module Ractorize
       ::Kernel.puts "#{@__target_class__}##{method_name} called in ractorized object"
       ractor = self.ractor
 
+      @__ractor_id__ = ractor.object_id
+
       if ractor.default_port.closed? # && method_name != :__close__ && method_name != :__join__
         ::Kernel.raise ::Ractor::ClosedError, "Ractorized object is already closed and cannot be used anymore"
       end
 
-      return_port = ::Ractor::Port.new
+      return_value_port = ::Ractor::Port.new
 
       to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
 
       if to_move&.any?
-        ractor << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, !!block]
+        ractor << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_value_port, !!block]
 
-        args_port = return_port.receive
+        args_port = return_value_port.receive
         args_port << method_name
 
         args.each do |arg|
@@ -108,7 +112,7 @@ module Ractorize
 
         args_port << :done
       else
-        ractor << [method_name, args.dup.freeze, opts.dup.freeze, return_port, !!block].freeze
+        ractor << [method_name, args.dup.freeze, opts.dup.freeze, return_value_port, !!block].freeze
       end
 
       if block
@@ -116,7 +120,7 @@ module Ractorize
         value = nil
 
         until stop
-          data = return_port.receive
+          data = return_value_port.receive
 
           # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
           # pattern path, but since that's purely defensive I have no interest in testing it.
@@ -138,7 +142,7 @@ module Ractorize
           end
         end
 
-        return_port.close
+        return_value_port.close
 
         value
       # Let's assume the user would rather block on all predicate methods than
@@ -146,16 +150,16 @@ module Ractorize
       elsif method_name == :== || method_name == :! || method_name == :!= ||
             method_name == :inspect || method_name == :to_s ||
             method_name.end_with?("?") || method_name == :hash
-        value = return_port.receive
+        value = return_value_port.receive
 
-        return_port.close
+        return_value_port.close
         # :nocov:
         ::Kernel.raise ::Ractorize::Thunk::EscapingRactorError if ::Ractorize::Thunk === value
         # :nocov:
 
         value
       else
-        Thunk.new(return_port, @__target_class__, method_name)
+        ::Ractorize::GarbageCollection.create_thunk(return_value_port, @__object_id__)
       end
     end
 

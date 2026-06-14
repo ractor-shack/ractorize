@@ -156,6 +156,32 @@ module Ractorize
       each_instance_of(RactorizedObject, structure, seen, 0, &)
     end
 
+    def send_args(port_like,
+                  klass,
+                  args,
+                  opts,
+                  &block)
+      to_move = ::Ractorize.prepare_args(klass, args, opts)
+
+      args.each do |arg|
+        port_like << :arg
+        port_like.send(arg, move: to_move&.include?(arg))
+      end
+
+      opts.each_pair do |name, value|
+        port_like << :kwarg
+        port_like << name
+        port_like.send(value, move: to_move&.include?(value))
+      end
+
+      if block
+        port_like << :block
+        port_like << block
+      end
+
+      port_like << :done
+    end
+
     def extract_args(port_like)
       args = []
       opts = {}
@@ -225,19 +251,16 @@ module Ractorize
 
   # Putting this in a constant so we can get test coverage on it since not sure how to get coverage
   # on something inside a ractor.
-  RACTOR_PROC = proc do
+  RACTOR_PROC = Ractor.shareable_proc do
+    puts "ractor proc started!"
     mode = receive
 
     object = case mode
-             when :class
-               klass, args, opts, block = receive
-               target_class = klass
-               klass.new(*args.freeze, **opts.freeze, &block)
              when :object
                o = receive
                target_class = o.class
                o
-             when :class_arg_by_arg
+             when :class
                klass = receive
                target_class = klass
 
@@ -362,7 +385,7 @@ module Ractorize
 
   class << self
     def ractorize_object(object)
-      RactorizedObject.new(:object, object)
+      GarbageCollection.create_ractorized_object(:object, object)
     end
 
     def ractorize_class(klass)

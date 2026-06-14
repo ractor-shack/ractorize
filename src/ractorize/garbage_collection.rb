@@ -17,31 +17,38 @@ module Ractorize
         TRACKING_RACTOR << :__close__
       end
 
-      def track_ractorized_object(ractorized_object, ractor)
-        puts "track_ractorized_object called for #{ractorized_object.__object_id__} #{ractor}"
+      def create_ractorized_object(*args, **opts)
         return_port = Ractor::Port.new
-        TRACKING_RACTOR << [:track_ractorized_object, ractor, return_port].freeze
-        puts "waiting for args_port"
+
+        TRACKING_RACTOR.send(
+          [:construct_ractorized_object, return_port].freeze
+        )
+
         args_port = return_port.receive
-        puts "got args port!"
-        args_port.send(ractorized_object, move: true)
-        returned_ractorized_object = return_port.receive
+
+        args_port.send(args.first, move: true)
+
+        args_port = nil
+        ractorized_object = return_port.receive
         return_port.close
-        puts "done track_Ractorized_object #{ractorized_object.__object_id__} #{ractor}"
-        returned_ractorized_object
+        ractorized_object
       end
 
-      def track_thunk(thunk, return_value_port)
+      def create_ractorized_object_from_class(klass, *args, **opts)
         return_port = Ractor::Port.new
-        TRACKING_RACTOR << [:track_thunk, return_port]
+
+        TRACKING_RACTOR.send(
+          [:construct_ractorized_object_from_class, klass, return_port].freeze
+        )
 
         args_port = return_port.receive
+
+        ::Ractorize.send_args(args_port, klass, args, opts)
+
+        args_port = nil
+        ractorized_object = return_port.receive
         return_port.close
-
-        args_port.send(thunk, move: true)
-        args_port.send(return_value_port)
-
-        args_port.receive
+        ractorized_object
       end
 
       TRACKING_RACTOR = Ractor.new do
@@ -59,15 +66,37 @@ module Ractorize
           case message
           in :get_ractor, ractorized_object_id, return_port
             return_port << tracker.get_ractor(ractorized_object_id)
+            return_port.close
             return_port = nil
           in :delete_ractor, ractorized_object_id
             tracker.delete_ractor(ractorized_object_id)
           in :__close__
             tracker = nil
             break
-          in :construct_ractorized_object, args, opts, return_port
+          in :construct_ractorized_object, return_port
+            args_port = Ractor::Port.new
+            return_port << args_port
+
+            object = args_port.receive
+
+            args_port.close
+            args_port = nil
+
             return_port.send(
-              tracker.construct_ractorized_object(*args, **opts),
+              tracker.construct_ractorized_object(object),
+              move: true
+            )
+            args = object = return_port = nil
+          in :construct_ractorized_object_from_klass, klass, return_port
+            args_port = Ractor::Port.new
+            return_port << args_port
+
+            args, opts, block = ::Ractorize.extract_args(args_port)
+            args_port.close
+            args_port = nil
+
+            return_port.send(
+              tracker.construct_ractorized_object_from_class(klass, args, opts, block),
               move: true
             )
             args = opts = return_port = nil

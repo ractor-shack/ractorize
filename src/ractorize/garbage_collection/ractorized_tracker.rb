@@ -3,7 +3,10 @@ module Ractorize
     class RactorizedTracker
       class << self
         def instance
-          @instance ||= new
+          puts "calling instance!"
+          @instance ||= new.tap do
+            puts "made instance!"
+          end
         end
       end
 
@@ -28,7 +31,6 @@ module Ractorize
       def construct_ractorized_object(...)
         ractorized_object = RactorizedObject.new(...)
 
-        track_ractorized_object(self, ractor)
         ractorized_object_id_to_ractor[ractorized_object.__object_id__] = ractorized_object.ractor
 
         setup_ractorized_object_finalizer(ractorized_object)
