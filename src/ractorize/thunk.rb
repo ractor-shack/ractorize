@@ -4,13 +4,11 @@ module Ractorize
   class Thunk < BasicObject
     class EscapingRactorError < ::StandardError; end
 
-    attr_accessor :__return_value_port__, :__ractor__, :because_of_class, :because_of_method
+    attr_accessor :__return_value_port__, :__ractor__
     attr_reader :__object_id__
 
     def initialize(return_value_port)
       # self.__ractor__ = ::Ractor.current
-      self.because_of_class = because_of_class
-      self.because_of_method = because_of_method
 
       self.__return_value_port__ = return_value_port
       @__return_port_object_id__ = return_value_port.object_id
@@ -62,7 +60,11 @@ module Ractorize
     def ! = !__value__
     def ==(other) = __value__ == other || super
     def !=(other) = __value__ != other || super
-    # def eql?(other) = method_missing(:eql?, other) || super
+    def eql?(other) = __value__.eql?(other) || super
+    # TODO: we should see under what circumstances this is called...
+    # if it's called in a lot of internal contexts like define_finalizer
+    # then we might have a problem...
+    def hash = __other__.hash
     # def equal?(other) = __value__.equal?(other) || super
   end
 end

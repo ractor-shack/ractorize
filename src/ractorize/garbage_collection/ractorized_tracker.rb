@@ -52,7 +52,8 @@ module Ractorize
         setup_thunk_finalizer(thunk)
 
         ::Object.instance_method(:freeze).bind_call(thunk)
-        return_port.send(thunk, move: true)
+
+        thunk
       end
 
       def clean_up_after_ractorized_object(ractorized_object_id)
