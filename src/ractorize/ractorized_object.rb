@@ -31,33 +31,8 @@ module Ractorize
 
         @__target_class__ = klass
 
-        to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
+        ::Ractorize.send_args(ractor, klass, args, opts, block)
 
-        if to_move&.any?
-          ractor << :class_arg_by_arg
-          ractor << klass
-
-          args.each do |arg|
-            ractor << :arg
-            ractor.send(arg, move: to_move.include?(arg))
-          end
-
-          opts.each_pair do |name, value|
-            ractor << :kwarg
-            ractor << name
-            ractor.send(value, move: to_move.include?(value))
-          end
-
-          if block
-            ractor << :block
-            ractor << block
-          end
-
-          ractor << :done
-        else
-          ractor << :class
-          ractor << [klass, args.freeze, opts.dup.freeze, block].freeze
-        end
       else
         # :nocov:
         ::Kernel.raise "Invalid mode #{mode}"

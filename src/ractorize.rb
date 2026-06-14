@@ -160,7 +160,7 @@ module Ractorize
                   klass,
                   args,
                   opts,
-                  &block)
+                  block = nil)
       to_move = ::Ractorize.prepare_args(klass, args, opts)
 
       args.each do |arg|
