@@ -31,6 +31,8 @@ module Ractorize
 
         klass, *args = args
 
+        ractor << klass
+
         @__target_class__ = klass
 
         ::Ractorize.send_args(ractor, klass, args, opts, block)
@@ -143,7 +145,7 @@ module Ractorize
 
         value
       else
-        ::Ractorize::GarbageCollection.create_thunk(return_value_port, @__object_id__)
+        ::Ractorize::GarbageCollection.create_thunk(@__object_id__, return_value_port)
       end
     end
 

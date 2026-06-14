@@ -39,8 +39,6 @@ module Ractorize
       def construct_thunk(ractorized_object_id, return_value_port)
         thunk = Thunk.new(return_value_port)
 
-        return_value_port = args_port.receive
-
         thunk_id = thunk.__object_id__
 
         return_ports = ractorized_object_id_to_return_ports[ractorized_object_id] ||= ObjectSpace::WeakMap.new

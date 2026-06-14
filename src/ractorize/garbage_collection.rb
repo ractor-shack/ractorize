@@ -66,6 +66,21 @@ module Ractorize
         ractorized_object
       end
 
+      def create_thunk(ractorized_object_id, return_value_port)
+        return_port = Ractor::Port.new
+
+        TRACKING_RACTOR << [
+          :construct_thunk,
+          ractorized_object_id,
+          return_value_port,
+          return_port
+        ].freeze
+
+        thunk = return_port.receive
+        puts "created thunk for ractorized object #{ractorized_object_id}"
+        thunk
+      end
+
       TRACKING_RACTOR = Ractor.new do
         tracker = RactorizedTracker.new
 
@@ -114,7 +129,7 @@ module Ractorize
             args = opts = return_port = nil
           in :construct_thunk, ractorized_object_id, return_value_port, return_port
             return_port.send(
-              tracker.construct_thunk(ractorized_object),
+              tracker.construct_thunk(ractorized_object_id, return_value_port),
               move: true
             )
             return_value_port = return_port = nil
