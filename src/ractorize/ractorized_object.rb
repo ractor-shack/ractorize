@@ -5,6 +5,7 @@ module Ractorize
   class RactorizedObject < BasicObject
     def initialize(mode, *args, **opts, &block)
       ::Kernel.puts "creating ractor..."
+      # A bit of a hack here... We can't get a handle on the ractor at first due to a deadlock.
       ractor = ::Ractor.new(name: "#{args.first}<#{args.first.object_id}>", &RACTOR_PROC)
       ::Kernel.puts "ractor created!"
 
@@ -62,8 +63,10 @@ module Ractorize
         ::Kernel.raise "Invalid mode #{mode}"
         # :nocov:
       end
-
       @__object_id__ = ::Object.instance_method(:object_id).bind_call(self)
+
+      # Definitely feels weird and hacky to do this from here but otherwise we get a deadlock
+      GarbageCollection.put_ractor(@__object_id__, ractor)
     end
 
     attr_reader :__object_id__
@@ -82,8 +85,6 @@ module Ractorize
     def method_missing(method_name, *args, **opts, &block)
       ::Kernel.puts "#{@__target_class__}##{method_name} called in ractorized object"
       ractor = self.ractor
-
-      @__ractor_id__ = ractor.object_id
 
       if ractor.default_port.closed? # && method_name != :__close__ && method_name != :__join__
         ::Kernel.raise ::Ractor::ClosedError, "Ractorized object is already closed and cannot be used anymore"
@@ -184,7 +185,7 @@ module Ractorize
 
     def inspect
       object_id = ::Object.instance_method(:object_id).bind(self).call
-      moved_object_inspect = if ractor.default_port.closed?
+      moved_object_inspect = if ractor&.default_port&.closed?
                                ::Object.instance_method(:object_id).bind_call(self)
                              else
                                method_missing(:inspect)

@@ -215,7 +215,6 @@ module Ractorize
     private
 
     def each_instance_of(klass, structure, seen = Set.new, depth = 0, &block)
-      puts depth
       depth += 1
       if klass === structure
         puts "yielding it!!"

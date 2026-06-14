@@ -1,15 +1,6 @@
 module Ractorize
   module GarbageCollection
     class RactorizedTracker
-      class << self
-        def instance
-          puts "calling instance!"
-          @instance ||= new.tap do
-            puts "made instance!"
-          end
-        end
-      end
-
       attr_accessor :ractorized_object_id_to_ractor,
                     :ractorized_object_id_to_return_ports,
                     :thunk_id_to_ractorized_object_id
@@ -18,6 +9,10 @@ module Ractorize
         self.ractorized_object_id_to_ractor = {}
         self.ractorized_object_id_to_return_ports = {}
         self.thunk_id_to_ractorized_object_id = {}
+      end
+
+      def put_ractor(ractorized_object_id, ractor)
+        ractorized_object_id_to_ractor[ractorized_object_id] = ractor
       end
 
       def get_ractor(ractorized_object_id)
@@ -29,15 +24,12 @@ module Ractorize
       end
 
       def construct_ractorized_object(...)
-        puts "constructing ractorized object"
         ractorized_object = RactorizedObject.new(...)
 
-        ractorized_object_id_to_ractor[ractorized_object.__object_id__] = ractorized_object.ractor
-
         setup_ractorized_object_finalizer(ractorized_object)
+
         ::Object.instance_method(:freeze).bind_call(ractorized_object)
 
-        puts "ractorized object created"
         ractorized_object
       end
 

@@ -1,6 +1,10 @@
 module Ractorize
   module GarbageCollection
     class << self
+      def put_ractor(ractorized_object_id, ractor)
+        TRACKING_RACTOR << [:put_ractor, ractorized_object_id, ractor].freeze
+      end
+
       def get_ractor(ractorized_object_id)
         return_port = Ractor::Port.new
         TRACKING_RACTOR << [:get_ractor, ractorized_object_id, return_port].freeze
@@ -60,16 +64,12 @@ module Ractorize
         loop do
           message = receive
 
-          if Array === message
-            puts "got message! #{message.first}"
-          else
-            puts "got_message #{message}"
-          end
-
           case message
+          in :put_ractor, ractorized_object_id, ractor
+            tracker.put_ractor(ractorized_object_id, ractor)
+            ractor = nil
           in :get_ractor, ractorized_object_id, return_port
             return_port << tracker.get_ractor(ractorized_object_id)
-            return_port.close
             return_port = nil
           in :delete_ractor, ractorized_object_id
             tracker.delete_ractor(ractorized_object_id)
@@ -86,11 +86,11 @@ module Ractorize
             args_port = nil
 
             return_port.send(
-              tracker.construct_ractorized_object(object),
+              tracker.construct_ractorized_object(:object, object),
               move: true
             )
             args = object = return_port = nil
-          in :construct_ractorized_object_from_klass, klass, return_port
+          in :construct_ractorized_object_from_class, klass, return_port
             args_port = Ractor::Port.new
             return_port << args_port
 
@@ -99,7 +99,7 @@ module Ractorize
             args_port = nil
 
             return_port.send(
-              tracker.construct_ractorized_object_from_class(klass, args, opts, block),
+              tracker.construct_ractorized_object(:class, klass, *args, **opts, &block),
               move: true
             )
             args = opts = return_port = nil
