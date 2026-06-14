@@ -16,6 +16,9 @@ module Ractorize
       end
 
       def get_ractor(ractorized_object_id)
+        puts "getting the ractor for ractorized object #{ractorized_object_id}"
+        puts "the map is:"
+        pp ractorized_object_id_to_ractor
         ractorized_object_id_to_ractor[ractorized_object_id]
       end
 

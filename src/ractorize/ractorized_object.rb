@@ -86,7 +86,12 @@ module Ractorize
       ::Kernel.puts "#{@__target_class__}##{method_name} called in ractorized object"
       ractor = self.ractor
 
-      if ractor&.default_port&.closed? # && method_name != :__close__ && method_name != :__join__
+      if ractor.nil?
+        message = "This ractorized object #{@__object_id__} has no ractor " \
+                  "but #{@__target_class__}##{method_name} was called on it!"
+        ::Kernel.puts message
+        ::Kernel.raise ::Ractor::ClosedError, message
+      elsif ractor.default_port.closed? # && method_name != :__close__ && method_name != :__join__
         ::Kernel.raise ::Ractor::ClosedError, "Ractorized object is already closed and cannot be used anymore " \
                                               "but #{@__target_class__}##{method_name} was called on it!"
       end
@@ -196,7 +201,7 @@ module Ractorize
     end
 
     def ractor
-      ::Ractorize::GarbageCollection.get_ractor(@__ractor_id__)
+      ::Ractorize::GarbageCollection.get_ractor(@__object_id__)
     end
   end
 end
