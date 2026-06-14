@@ -27,6 +27,8 @@ module Ractorize
           ractor.send(outside_object, move: true)
         end
       when :class
+        ractor << :class
+
         klass, *args = args
 
         @__target_class__ = klass
