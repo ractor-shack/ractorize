@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+
+Ractor.current.singleton_class.attr_accessor :foo
+Ractor.current.foo = 100
+
+Ractor.new do
+  puts Ractor.main.foo
+end.join

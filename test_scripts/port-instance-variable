@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+p = Ractor::Port.new
+
+p.singleton_class.attr_accessor :foo
+
+p.foo = 100
+
+Ractor.new(p) { puts p.foo }.join

@@ -18,12 +18,22 @@ module Ractorize
       end
 
       def track_ractorized_object(ractorized_object, ractor)
-        TRACKING_RACTOR << [:track_ractorized_object, ractorized_object, ractor].freeze
+        puts "track_ractorized_object called for #{ractorized_object.__object_id__} #{ractor}"
+        return_port = Ractor::Port.new
+        TRACKING_RACTOR << [:track_ractorized_object, ractor, return_port].freeze
+        puts "waiting for args_port"
+        args_port = return_port.receive
+        puts "got args port!"
+        args_port.send(ractorized_object, move: true)
+        returned_ractorized_object = return_port.receive
+        return_port.close
+        puts "done track_Ractorized_object #{ractorized_object.__object_id__} #{ractor}"
+        returned_ractorized_object
       end
 
       def track_thunk(thunk, return_value_port)
         return_port = Ractor::Port.new
-        RACTOR_TRACKER << [:track_thunk, return_port]
+        TRACKING_RACTOR << [:track_thunk, return_port]
 
         args_port = return_port.receive
         return_port.close
@@ -35,106 +45,55 @@ module Ractorize
       end
 
       TRACKING_RACTOR = Ractor.new do
-        ractorized_object_id_to_ractor = {}
-        ractorized_object_id_to_return_ports = {}
-        thunk_id_to_ractorized_object_id = {}
+        tracker = RactorizedTracker.new
 
         loop do
-          case receive
+          message = receive
+
+          if Array === message
+            puts "got message! #{message.first}"
+          else
+            puts "got_message #{message}"
+          end
+
+          case message
           in :get_ractor, ractorized_object_id, return_port
-            return_port << ractorized_object_id_to_ractor[ractorized_object_id]
+            return_port << tracker.get_ractor(ractorized_object_id)
             return_port = nil
           in :delete_ractor, ractorized_object_id
-            ractorized_object_id_to_ractor.delete(ractorized_object_id)
+            tracker.delete_ractor(ractorized_object_id)
           in :__close__
+            tracker = nil
             break
-          in :track_ractorized_object, ractorized_object, ractor
-            ractorized_object_id_to_ractor[ractorized_object.__object_id__] = ractor
-            setup_ractorized_object_finalizer(ractorized_object)
-            ractorized_object = ractor = nil
-          in :track_thunk, return_port
-            args_port = Ractor::Port.new
-
-            return_port << args_port
-
-            thunk = args_port.receive
-            return_value_port = args_port.receive
-
-            ractorized_object_id = thunk.__ractorized_object_id__
-            thunk_id = thunk.__object_id__
-
-            return_ports = ractorized_object_id_to_return_ports[ractorized_object_id] ||= ObjectSpace::WeakMap.new
-            return_ports[thunk_id] = return_value_port
-
-            thunk_id_to_ractorized_object_id[thunk_id] = ractorized_object_id
-
-            setup_thunk_finalizer(thunk)
-
-            args_port.send(thunk, move: true)
-
-            args_port = thunk = return_port = return_ports = return_value_port = nil
+          in :construct_ractorized_object, args, opts, return_port
+            return_port.send(
+              tracker.construct_ractorized_object(*args, **opts),
+              move: true
+            )
+            args = opts = return_port = nil
+          in :construct_thunk, ractorized_object_id, return_value_port, return_port
+            return_port.send(
+              tracker.construct_thunk(ractorized_object),
+              move: true
+            )
+            return_value_port = return_port = nil
           in :clean_up_after_ractorized_object, ractorized_object_id
-            ractor = ractorized_object_id_to_ractor.delete(ractorized_object_id)
-
-            if ractor
-              thunk_id_to_port = ractorized_object_id_to_return_ports.delete(ractorized_object_id)
-
-              ports = thunk_id_to_port.values
-
-              ractor << if ports&.any?
-                          [:__abandon_ports_and_close__, [ports].freeze].freeze
-                        else
-                          :__close__
-                        end rescue Ractor::ClosedError
-
-              thunk_id_to_port.each_key do |thunk_id|
-                thunk_id_to_ractorized_object_id.delete(thunk_id)
-              end
-
-              ports = thunk_id_to_port = ractor = nil
-            end
+            tracker.clean_up_after_ractorized_object(ractorized_object_id)
           in :clean_up_after_thunk, thunk_id
-            ractorized_object_id = thunk_id_to_ractorized_object_id.delete(thunk_id)
-            ractor = ractorized_object_id_to_ractor[ractorized_object_id]
-            port = ractorized_object_id_to_return_ports[ractorized_object_id]&.delete(thunk_id)
-
-            if ractor
-              if port
-                ractor << [:__close_port__, port].freeze rescue Ractor::ClosedError
-                port = nil
-              end
-
-              ractor = nil
-            end
+            tracker.clean_up_after_thunk(thunk_id)
+          else
+            raise "couldn't handle the message #{message}!"
           end
+        rescue => e
+          puts "wtf got error in tracking ractor loop hmmm #{e}"
+          puts e.class
+          puts e.message
+          puts e.backtrace
+          raise
         end
       end
 
       private_constant :TRACKING_RACTOR
-
-      private
-
-      def ractorized_object_finalize_proc
-        proc do |ractorized_object_id|
-          puts "finalizer called for #{ractorized_object_id}!!!"
-          TRACKING_RACTOR << [:clean_up_after_ractorized_object, ractorized_object_id].freeze rescue Ractor::ClosedError
-        end
-      end
-
-      def setup_ractorized_object_finalizer(proxy_object)
-        ObjectSpace.define_finalizer(proxy_object, &finalize_proc)
-      end
-
-      def thunk_finalize_proc
-        proc do |thunk_id|
-          puts "thunk finalizer called for #{thunk_id}!!!"
-          TRACKING_RACTOR << [:clean_up_after_thunk, thunk_id].freeze rescue Ractor::ClosedError
-        end
-      end
-
-      def setup_thunk_finalizer(thunk)
-        ObjectSpace.define_finalizer(thunk, &finalize_proc)
-      end
     end
   end
 end

@@ -7,7 +7,7 @@ module Ractorize
     attr_accessor :__return_value_port__, :__ractor__, :because_of_class, :because_of_method
     attr_reader :__object_id__
 
-    def initialize(return_value_port, because_of_class, because_of_method)
+    def initialize(return_value_port)
       # self.__ractor__ = ::Ractor.current
       self.because_of_class = because_of_class
       self.because_of_method = because_of_method
@@ -17,8 +17,6 @@ module Ractorize
 
       @__object_id__ = ::Object.instance_method(:object_id).bind_call(self)
       ::Kernel.puts "making thunk <#{@__object_id__}> for port #{return_value_port}"
-
-      ::Ractorize::GarbageCollection.track(self, return_value_port)
 
       # ::Object.instance_method(:freeze).bind_call(self)
     end

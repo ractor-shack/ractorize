@@ -1,0 +1,9 @@
+#!/usr/bin/env ruby
+
+class C
+  singleton_class.attr_accessor :foo
+end
+
+C.foo = 100
+
+Ractor.new { puts C.foo }.join

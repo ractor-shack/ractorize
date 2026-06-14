@@ -62,9 +62,6 @@ module Ractorize
       end
 
       @__object_id__ = ::Object.instance_method(:object_id).bind_call(self)
-      ::Ractorize::GarbageCollection.track(self, ractor)
-
-      ::Object.instance_method(:freeze).bind(self).call
     end
 
     attr_reader :__object_id__
@@ -193,7 +190,7 @@ module Ractorize
     end
 
     def ractor
-      ::Ractorize::GarbageCollection.portlike_for(@__ractor_id__)
+      ::Ractorize::GarbageCollection.get_ractor(@__ractor_id__)
     end
   end
 end
