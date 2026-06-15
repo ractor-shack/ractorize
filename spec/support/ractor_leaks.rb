@@ -81,6 +81,9 @@ RSpec.configure do |config|
       puts "<#{it.object_id}> #{it.inspect}"
     end
 
+    pp ractor_and_port_counts
+    pp ractors_and_ports
+
     leaked_ractors = ractor_count - $original_ractor_count
 
     raise "Leaked ractors: #{leaked_ractors}" if leaked_ractors > 0
@@ -88,8 +91,5 @@ RSpec.configure do |config|
     leaked_ports = ractor_port_count - $original_ractor_port_count
 
     raise "Leaked ports: #{leaked_ports}" if leaked_ports > 0
-
-    puts leaked_ractors
-    puts leaked_ports
   end
 end

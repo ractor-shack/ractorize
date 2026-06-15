@@ -13,6 +13,7 @@ module Ractorize
 
       def cleanup_after_ractorized_object(ractorized_object_id)
         ractor = ractorized_object_id_to_ractor.delete(ractorized_object_id)
+        puts "shutting down #{ractor} due to #{ractorized_object_id} finalizing!"
         ractor << :__close__
       end
     end

@@ -276,11 +276,14 @@ module Ractorize
              end
 
     loop do
+      method_name = method_args = opts = return_port = block_given = nil
       method_name, method_args, opts, return_port, block_given = receive
 
       case method_name
       when :__close__
+        ::Kernel.puts "received __close__"
         return_port&.<<(object, move: true)
+        object = nil
         close
         break
       else
@@ -324,6 +327,7 @@ module Ractorize
             puts "returnving value, shareable? #{Ractor.shareable?(value)} " \
                  "ractorized object? #{::Ractorize::RactorizedObject === value}"
             return_port.send(value)
+            value = nil
           rescue IOError => e
             # Unclear why this sometimes manifests as this error instead of ClosedError but
             # need to handle them both.
@@ -346,7 +350,8 @@ module Ractorize
       raise e
     end
 
-    object
+    nil
+    # object
   rescue => e
     # :nocov:
     puts

@@ -169,7 +169,7 @@ module Ractorize
     def ==(other) = method_missing(:==, other) || super
     def !=(other) = method_missing(:==, other) || super
     def ! = method_missing(:!)
-    def equal?(other) = method_missing(:equal?, other) || super
+    # def equal?(other) = method_missing(:equal?, other) || super
     def to_s = inspect
 
     def inspect
