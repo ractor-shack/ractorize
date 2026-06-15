@@ -4,8 +4,6 @@ require "bundler/setup"
 # require "irb"
 require "ractorize"
 require "timeout"
-require "foobara/util"
-require "weakref"
 
 def ractors_and_ports
   ractors = []
@@ -55,15 +53,19 @@ class Outer
   def length = inner.foo.length
 end
 
+pp ractor_and_port_counts
+pp ractors_and_ports
+
 outer = Ractorize[Outer].new
 inner = outer.inner
 
-puts inner
+# puts inner
+#
+# puts "inner is #{Object.instance_method(:object_id).bind_call(inner)}"
+#
+# weak_inner = WeakRef.new(inner)
 
-puts "inner is #{Object.instance_method(:object_id).bind_call(inner)}"
-
-weak_inner = WeakRef.new(inner)
-
+pp ractor_and_port_counts
 pp ractors_and_ports
 
 inner = outer = nil
@@ -86,6 +88,7 @@ begin
 rescue Timeout::Error
 end
 
+pp ractor_and_port_counts
 pp ractors_and_ports
 
-pp Foobara::Util.referencing_paths(weak_inner.__getobj__)
+puts "exiting"

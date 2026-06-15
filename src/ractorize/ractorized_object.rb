@@ -3,8 +3,10 @@ require_relative "thunk"
 
 module Ractorize
   class RactorizedObject < BasicObject
+    class RactorizedRactor < ::Ractor; end
+
     def initialize(mode, *args, **opts, &block)
-      @ractor = ::Ractor.new(name: "#{args.first}<#{args.first.object_id}>", &RACTOR_PROC)
+      @ractor = RactorizedRactor.new(name: "#{args.first}<#{args.first.object_id}>", &RACTOR_PROC)
 
       case mode
       when :object
