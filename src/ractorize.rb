@@ -280,6 +280,7 @@ module Ractorize
 
       case method_name
       when :__gc__
+        # doesn't seem to matter? rip out?
         GC.start
       when :__close__
         puts "closing for object #{object} with return port: #{return_port.inspect}"
@@ -292,9 +293,8 @@ module Ractorize
         break
       when :__abandon_ports_and_close__
         raise "wtf??"
-        ports = method_args
-        ports.each { it.close }
-        method_args = ports = nil
+        method_args.each { it.close }
+        method_args = nil
         close
         break
       else
@@ -336,11 +336,15 @@ module Ractorize
           value = value.__value__ while Ractorize::Thunk === value
 
           begin
+            # wait, what if value is a ractorized object????
+            puts "returnving value, shareable? #{Ractor.shareable?(value)} " \
+                 "ractorized object? #{::Ractorize::RactorizedObject === value}"
             return_port.send(value)
             value = return_port = nil
           rescue IOError => e
             # Unclear why this sometimes manifests as this error instead of ClosedError but
             # need to handle them both.
+            puts "ERROR: why??? IOError?? #{e}"
             # :nocov:
             raise unless e.message == "closed stream"
             # :nocov:

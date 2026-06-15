@@ -10,7 +10,7 @@ module Ractorize
     def initialize(return_value_port)
       # self.__ractor__ = ::Ractor.current
 
-      # self.__return_value_port__ = return_value_port
+      self.__return_value_port__ = return_value_port
       @__return_port_object_id__ = return_value_port.object_id
 
       @__object_id__ = ::Object.instance_method(:object_id).bind_call(self)
@@ -20,7 +20,8 @@ module Ractorize
     end
 
     def initialize_clone(...)
-      raise "whoa!"
+      ::Kernel.puts "cloaning!!!!!!!!"
+      ::Kernel.raise "whoa!"
       # is this actually necessary?? Seems so?
     end
 
@@ -43,16 +44,12 @@ module Ractorize
     def __value__
       return @__value__ if defined?(@__value__)
 
-      ::Kernel.puts "resolving thunk!!"
-      port = ::Ractorize::GarbageCollection.portlike_for(@__return_port_object_id__)
-      @__value__ = begin
-        ::Kernel.raise "wtf" unless port
+      # port = ::Ractorize::GarbageCollection.portlike_for(@__return_port_object_id__)
+      ::Kernel.puts "resolving thunk!! #{__return_value_port__.object_id} #{__return_value_port__}"
+      @__value__ = __return_value_port__.receive
+      #         ::Ractorize::GarbageCollection.untrack(self, port)
 
-        port.receive
-      ensure
-        port.close
-        ::Ractorize::GarbageCollection.untrack(self, port)
-      end
+      self.__return_value_port__ = nil
 
       ::Object.instance_method(:freeze).bind_call(self)
 
