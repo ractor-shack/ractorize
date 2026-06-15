@@ -3,10 +3,13 @@ require_relative "thunk"
 
 module Ractorize
   class RactorizedObject < BasicObject
+    class RactorizedRactor < ::Ractor; end
+
     def initialize(mode, *args, **opts, &block)
       ::Kernel.puts "creating ractor..."
       # A bit of a hack here... We can't get a handle on the ractor at first due to a deadlock.
-      ractor = ::Ractor.new(name: "#{args.first}<#{args.first.object_id}>", &RACTOR_PROC)
+      ractor = ::Ractorize::RactorizedObject::RactorizedRactor.new(name: "#{args.first}<#{args.first.object_id}>",
+&RACTOR_PROC)
       ::Kernel.puts "ractor created!"
 
       @__ractor_id__ = ractor.object_id

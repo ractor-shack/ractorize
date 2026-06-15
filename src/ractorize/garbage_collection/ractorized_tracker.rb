@@ -3,12 +3,14 @@ module Ractorize
     class RactorizedTracker
       attr_accessor :ractorized_object_id_to_ractor,
                     :ractorized_object_id_to_return_ports,
-                    :thunk_id_to_ractorized_object_id
+                    :thunk_id_to_ractorized_object_id,
+                    :return_value_port_created_in_ractor
 
       def initialize
         self.ractorized_object_id_to_ractor = {}
-        self.ractorized_object_id_to_return_ports = {}
+        self.ractorized_object_id_to_return_ports = ObjectSpace::WeakMap.new
         self.thunk_id_to_ractorized_object_id = {}
+        self.return_value_port_created_in_ractor = ObjectSpace::WeakMap.new
       end
 
       def put_ractor(ractorized_object_id, ractor)
@@ -36,12 +38,16 @@ module Ractorize
         ractorized_object
       end
 
-      def construct_thunk(ractorized_object_id, return_value_port)
+      def construct_thunk(ractorized_object_id, return_value_port, created_in_ractor)
         thunk = Thunk.new(return_value_port)
 
         thunk_id = thunk.__object_id__
 
         thunk_id_to_ractorized_object_id[thunk_id] = ractorized_object_id
+
+        if created_in_ractor.is_a?(RactorizedObject::RactorizedRactor)
+          return_value_port_created_in_ractor[return_value_port] = created_in_ractor
+        end
 
         setup_thunk_finalizer(thunk)
 
@@ -57,14 +63,22 @@ module Ractorize
         if ractor
           thunk_id_to_port = ractorized_object_id_to_return_ports.delete(ractorized_object_id)
 
-          ports = thunk_id_to_port.values
+          ports = thunk_id_to_port&.values
+
+          if ports&.any?
+            ractor_to_ports = ports.group_by do |port|
+              return_value_port_created_in_ractor[port]
+            end
+
+            ractor_to_ports.each_pair do |ractor, ports|
+              ractor&.send([:close_ports, ports.freeze].freeze)
+            rescue Ractor::ClosedError
+              # do nothing
+            end
+          end
 
           begin
-            ractor << if ports&.any?
-                        [:__abandon_ports_and_close__, ports.freeze].freeze
-                      else
-                        :__close__
-                      end
+            ractor << :__close__
           rescue Ractor::ClosedError
             # do nothing
           end
