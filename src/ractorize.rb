@@ -279,6 +279,8 @@ module Ractorize
       puts "got #{method_name} in ractor #{self}"
 
       case method_name
+      when :__gc__
+        GC.start
       when :__close__
         puts "closing for object #{object} with return port: #{return_port.inspect}"
         return_port&.<<(object, move: true)

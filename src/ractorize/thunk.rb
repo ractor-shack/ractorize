@@ -43,7 +43,7 @@ module Ractorize
     def __value__
       return @__value__ if defined?(@__value__)
 
-      puts "resolving thunk!!"
+      ::Kernel.puts "resolving thunk!!"
       port = ::Ractorize::GarbageCollection.portlike_for(@__return_port_object_id__)
       @__value__ = begin
         ::Kernel.raise "wtf" unless port
@@ -70,3 +70,5 @@ module Ractorize
     # def equal?(other) = __value__.equal?(other) || super
   end
 end
+
+# TODO: see if you can find out what is pointing to the ractorized object...

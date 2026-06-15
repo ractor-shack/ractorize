@@ -37,14 +37,15 @@ module Ractorize
         @__target_class__ = klass
 
         ::Ractorize.send_args(ractor, klass, args, opts, block)
-
       else
         # :nocov:
         ::Kernel.raise "Invalid mode #{mode}"
         # :nocov:
       end
+
       @__object_id__ = ::Object.instance_method(:object_id).bind_call(self)
 
+      ::Kernel.puts "ractorized object #{@__object_id__} created for #{@__target_class__} for ractor #{ractor}<#{@__ractor_id__}>"
       # Definitely feels weird and hacky to do this from here but otherwise we get a deadlock
       GarbageCollection.put_ractor(@__object_id__, ractor)
     end
@@ -53,6 +54,10 @@ module Ractorize
 
     def __close__
       method_missing(:__close__).__value__
+    end
+
+    def __gc__
+      method_missing(:__gc__)
     end
 
     def __join__

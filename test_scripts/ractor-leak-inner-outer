@@ -4,6 +4,8 @@ require "bundler/setup"
 # require "irb"
 require "ractorize"
 require "timeout"
+require "foobara/util"
+require "weakref"
 
 def ractors_and_ports
   ractors = []
@@ -56,6 +58,12 @@ end
 outer = Ractorize[Outer].new
 inner = outer.inner
 
+puts inner
+
+puts "inner is #{Object.instance_method(:object_id).bind_call(inner)}"
+
+weak_inner = WeakRef.new(inner)
+
 pp ractors_and_ports
 
 inner = outer = nil
@@ -68,9 +76,16 @@ begin
       sleep 0.1
 
       1_000_000.times.map { Object.new }
+      ractors_and_ports.first.each do |ractor|
+        if ractor.is_a?(Ractorize::RactorizedObject::RactorizedRactor)
+          #          ractor << :__gc__
+        end
+      end
     end
   end
 rescue Timeout::Error
 end
 
 pp ractors_and_ports
+
+pp Foobara::Util.referencing_paths(weak_inner.__getobj__)
