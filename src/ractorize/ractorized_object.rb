@@ -7,6 +7,10 @@ module Ractorize
 
     attr_reader :__object_id__, :__ractor__
 
+    def initialize_clone
+      raise "wtf!!"
+    end
+
     def initialize(mode, *args, **opts, &block)
       @__ractor__ = RactorizedRactor.new(name: "#{args.first}<#{args.first.object_id}>", &RACTOR_PROC)
 
