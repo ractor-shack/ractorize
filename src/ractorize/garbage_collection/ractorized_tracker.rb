@@ -18,9 +18,6 @@ module Ractorize
       end
 
       def get_ractor(ractorized_object_id)
-        puts "getting the ractor for ractorized object #{ractorized_object_id}"
-        puts "the map is:"
-        pp ractorized_object_id_to_ractor
         ractorized_object_id_to_ractor[ractorized_object_id]
       end
 
@@ -111,13 +108,11 @@ module Ractorize
       def ractorized_object_finalize_proc
         proc do |ractorized_object_id|
           puts "finalizer called for #{ractorized_object_id}!!!"
-          # self.class.instance.clean_up_after_ractorized_object(ractorized_object_id)
           begin
             TRACKING_RACTOR << [:clean_up_after_ractorized_object, ractorized_object_id].freeze
           rescue Ractor::ClosedError
             # do nothing
           end
-          puts "message sent to clean up after #{ractorized_object_id}!"
         rescue => e
           puts e
           puts e.backtrace

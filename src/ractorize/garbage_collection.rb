@@ -2,21 +2,13 @@ module Ractorize
   module GarbageCollection
     class << self
       def put_ractor(ractorized_object_id, ractor)
-        puts "sending put ractor!"
         TRACKING_RACTOR << [:put_ractor, ractorized_object_id, ractor].freeze
-        puts "put ractor message sent!"
       end
 
       def get_ractor(ractorized_object_id)
-        puts "going to fetch ractor for ractorized object #{ractorized_object_id}"
         return_port = Ractor::Port.new
         TRACKING_RACTOR << [:get_ractor, ractorized_object_id, return_port].freeze
         ractor = return_port.receive
-        if ractor
-          puts "Got ractor!!!"
-        else
-          puts "hmmm no ractor wtf..."
-        end
         return_port.close
         ractor
       end
@@ -30,7 +22,6 @@ module Ractorize
       end
 
       def create_ractorized_object(object)
-        puts "creating ractorized object (in gc)"
         return_port = Ractor::Port.new
 
         TRACKING_RACTOR.send(
@@ -45,7 +36,6 @@ module Ractorize
         ractorized_object = return_port.receive
         return_port.close
 
-        puts "done creating it (in gc)"
         ractorized_object
       end
 
@@ -87,7 +77,6 @@ module Ractorize
       tracker = RactorizedTracker.new
 
       loop do
-        puts "waiting to receive..."
         message = receive
 
         message_type = message.is_a?(Array) ? message.first : message
@@ -95,7 +84,6 @@ module Ractorize
 
         case message
         in :put_ractor, ractorized_object_id, ractor
-          puts "going to set ractor for #{ractorized_object_id} to #{ractor}"
           tracker.put_ractor(ractorized_object_id, ractor)
           ractor = nil
         in :get_ractor, ractorized_object_id, return_port

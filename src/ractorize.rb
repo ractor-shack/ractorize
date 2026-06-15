@@ -251,7 +251,6 @@ module Ractorize
   # Putting this in a constant so we can get test coverage on it since not sure how to get coverage
   # on something inside a ractor.
   RACTOR_PROC = Ractor.shareable_proc do
-    puts "ractor proc started!"
     mode = receive
 
     object = case mode
@@ -276,7 +275,6 @@ module Ractorize
 
     loop do
       method_name = method_args = opts = return_port = block_given = nil
-      puts "about to receive in ractor #{self}"
       method_name, method_args, opts, return_port, block_given = receive
       puts "got #{method_name} in ractor #{self}"
 
