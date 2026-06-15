@@ -21,6 +21,11 @@ module Ractorize
       __value__.respond_to?(method_name, include_all)
     end
 
+    def __abandon_thunk__
+      __return_value_port__.receive
+      nil
+    end
+
     def __value__
       return @__value__ if defined?(@__value__)
 

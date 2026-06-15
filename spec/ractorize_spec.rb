@@ -417,9 +417,9 @@ RSpec.describe Ractorize do
           # expect(Ractorize::Thunk === outer.inner.foo.length).to be true
           # expect(outer.inner).to be_a(Inner)
           inner = outer.inner
-          skip
           expect(Ractorize::Thunk === inner).to be true
-          # puts inner
+          inner.__abandon_thunk__
+          skip
           expect(Ractorize::Thunk === outer.length).to be true
           expect(outer.length).to eq(4)
 
