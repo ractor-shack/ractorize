@@ -8,7 +8,7 @@ module Ractorize
 
       def initialize
         self.ractorized_object_id_to_ractor = {}
-        self.ractorized_object_id_to_return_ports = ObjectSpace::WeakMap.new
+        self.ractorized_object_id_to_return_ports = {}
         self.thunk_id_to_ractorized_object_id = {}
         self.return_value_port_created_in_ractor = ObjectSpace::WeakMap.new
       end
@@ -42,10 +42,14 @@ module Ractorize
 
         thunk_id_to_ractorized_object_id[thunk_id] = ractorized_object_id
 
-        if created_in_ractor.is_a?(RactorizedObject::RactorizedRactor)
-          return_value_port_created_in_ractor[return_value_port] = created_in_ractor
-        end
+        return_value_port_created_in_ractor[return_value_port] = created_in_ractor
 
+        return_ports = ractorized_object_id_to_return_ports[ractorized_object_id] ||= ObjectSpace::WeakMap.new
+        return_ports[thunk_id] = return_value_port
+
+        puts "ractorized_object_id_to_return_ports[#{ractorized_object_id}][#{thunk_id}] = #{return_value_port} "
+
+        pp ractorized_object_id_to_return_ports
         setup_thunk_finalizer(thunk)
 
         ::Object.instance_method(:freeze).bind_call(thunk)
@@ -57,12 +61,20 @@ module Ractorize
         puts "cleaning up after #{ractorized_object_id} yay!!!"
         ractor = ractorized_object_id_to_ractor.delete(ractorized_object_id)
 
+        unless ractor
+          raise "wtf no ractor??"
+        end
+
         if ractor
           thunk_id_to_port = ractorized_object_id_to_return_ports.delete(ractorized_object_id)
+
+          puts "here's thunk_id_to_port:"
+          pp thunk_id_to_port
 
           ports = thunk_id_to_port&.values
 
           if ports&.any?
+            puts "Going to clean up ports!! yaaaaay!"
             ractor_to_ports = ports.group_by do |port|
               return_value_port_created_in_ractor[port]
             end
@@ -72,6 +84,8 @@ module Ractorize
             rescue Ractor::ClosedError
               # do nothing
             end
+          else
+            puts "hmmmm no ports to clean up??"
           end
 
           begin
@@ -83,31 +97,56 @@ module Ractorize
       end
 
       def clean_up_after_thunk(thunk_id)
+        puts "in cleanup after thunk:"
+        pp ractorized_object_id_to_return_ports
+
         ractorized_object_id = thunk_id_to_ractorized_object_id.delete(thunk_id)
-        ractor = ractorized_object_id_to_ractor[ractorized_object_id]
         port = ractorized_object_id_to_return_ports[ractorized_object_id]&.delete(thunk_id)
 
-        if ractor
-          if port
-            begin
-              ractor << [:__close_port__, port].freeze
-            rescue Ractor::ClosedError
-              # do nothing
-            end
-          end
-        end
-      end
+        if port
+          created_in_ractor = return_value_port_created_in_ractor[port]
 
-      def created_return_value_port(ractorized_object_id, return_value_port)
-        return_ports = ractorized_object_id_to_return_ports[ractorized_object_id] ||= ObjectSpace::WeakMap.new
-        return_ports[thunk_id] = return_value_port
+          if created_in_ractor
+            if created_in_ractor == Ractor.current
+              port.close
+            elsif created_in_ractor.is_a?(RactorizedObject::RactorizedRactor)
+              begin
+                puts "closing port in thunk cleanup!! #{port}"
+                ractor << [:__close_port__, port].freeze
+              rescue Ractor::ClosedError
+                # do nothing
+              end
+            end
+          else
+            puts "whoa, why no created in ractor when cleaning up thunk??"
+          end
+        else
+          puts "whoa why no port in cleanup ractor?"
+        end
       end
 
       private
 
       def ractorized_object_finalize_proc
         proc do |ractorized_object_id|
-          puts "finalizer called for #{ractorized_object_id}!!!"
+          puts "finalizer called for #{ractorized_object_id}!!! #{Ractor.current}"
+
+          pp ractorized_object_id_to_return_ports.to_h
+          thunk_id_to_ports = ractorized_object_id_to_return_ports[ractorized_object_id]
+
+          ports = thunk_id_to_ports&.values
+
+          ports&.each do |port|
+            if return_value_port_created_in_ractor[port] == Ractor.current
+              begin
+                puts "closing a port!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1!"
+                port.close
+              rescue Ractor::ClosedError
+                # do nothing
+              end
+            end
+          end
+
           begin
             TRACKING_RACTOR << [:clean_up_after_ractorized_object, ractorized_object_id].freeze
           rescue Ractor::ClosedError
@@ -127,11 +166,25 @@ module Ractorize
 
       def thunk_finalize_proc
         proc do |thunk_id|
-          puts "thunk finalizer called for #{thunk_id}!!!"
-          begin
-            TRACKING_RACTOR << [:clean_up_after_thunk, thunk_id].freeze
-          rescue Ractor::ClosedError
-            # do nothing
+          puts "thunk finalizer called for #{thunk_id}!!! #{Ractor.current}"
+          ractorized_object_id = thunk_id_to_ractorized_object_id[thunk_id]
+          puts ractorized_object_id
+          port = ractorized_object_id_to_return_ports[ractorized_object_id]&.[](thunk_id)
+          puts port
+
+          if port
+            created_in_ractor = return_value_port_created_in_ractor[port]
+
+            if created_in_ractor == Ractor.current
+              clean_up_after_thunk(thunk_id)
+            else
+              begin
+                TRACKING_RACTOR << [:clean_up_after_thunk, thunk_id].freeze
+              rescue Ractor::ClosedError
+                # do nothing
+              end
+            end
+
           end
         end
       end

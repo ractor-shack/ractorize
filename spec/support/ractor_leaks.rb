@@ -52,7 +52,7 @@ RSpec.configure do |config|
     ractor_port_count,
     open_ractor_port_count = nil
 
-    Timeout.timeout(3) do
+    Timeout.timeout(10) do
       loop do
         ractor_count,
         open_ractor_count,
@@ -65,6 +65,10 @@ RSpec.configure do |config|
         end
 
         GC.start
+
+        sleep 0.1
+
+        1_000_000.times.map { Object.new }
       end
     end
   rescue Timeout::Error

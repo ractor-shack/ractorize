@@ -10,7 +10,7 @@ module Ractorize
     def initialize(return_value_port)
       # self.__ractor__ = ::Ractor.current
 
-      self.__return_value_port__ = return_value_port
+      # self.__return_value_port__ = return_value_port
       @__return_port_object_id__ = return_value_port.object_id
 
       @__object_id__ = ::Object.instance_method(:object_id).bind_call(self)

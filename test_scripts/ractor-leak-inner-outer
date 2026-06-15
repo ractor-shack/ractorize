@@ -1,0 +1,76 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+# require "irb"
+require "ractorize"
+require "timeout"
+
+def ractors_and_ports
+  ractors = []
+  ports = []
+
+  ObjectSpace.each_object do
+    case it
+    when Ractor
+      ractors << it
+    when Ractor::Port
+      ports << it
+    end
+  end
+
+  [ractors, ports]
+end
+
+def ractor_and_port_counts
+  total_ractor_count = 0
+  total_ractor_port_count = 0
+  open_ractor_count = 0
+  open_ractor_port_count = 0
+
+  ractors, ports = ractors_and_ports
+
+  ractors.each do
+    total_ractor_count += 1
+    open_ractor_count += 1 unless it.default_port.closed?
+  end
+  ports.each do
+    total_ractor_port_count += 1
+    open_ractor_port_count += 1 unless it.closed?
+  end
+
+  [total_ractor_count, open_ractor_count, total_ractor_port_count, open_ractor_port_count]
+end
+
+class Inner
+  def foo = @foo ||= Ractorize["asdf"]
+end
+
+class Outer
+  attr_accessor :inner
+
+  def initialize = self.inner = Ractorize[Inner].new
+  def foo = inner.foo
+  def length = inner.foo.length
+end
+
+outer = Ractorize[Outer].new
+inner = outer.inner
+
+pp ractors_and_ports
+
+inner = outer = nil
+
+begin
+  Timeout.timeout(10) do
+    loop do
+      GC.start
+
+      sleep 0.1
+
+      1_000_000.times.map { Object.new }
+    end
+  end
+rescue Timeout::Error
+end
+
+pp ractors_and_ports

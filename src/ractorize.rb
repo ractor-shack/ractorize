@@ -280,14 +280,16 @@ module Ractorize
 
       case method_name
       when :__close__
-        puts "closing for object #{object}"
+        puts "closing for object #{object} with return port: #{return_port.inspect}"
         return_port&.<<(object, move: true)
+        object = nil
         method_name = method_args = opts = return_port = block_given = nil
         close
         # Ractorize.resolve_all_thunks(object)
         puts "done with __close__"
         break
       when :__abandon_ports_and_close__
+        raise "wtf??"
         ports = method_args
         ports.each { it.close }
         method_args = ports = nil
@@ -300,6 +302,7 @@ module Ractorize
 
           method_name = args_port.receive
           method_args, opts = Ractorize.extract_args(args_port)
+          args_port.close
         end
 
         if block_given
@@ -332,7 +335,7 @@ module Ractorize
 
           begin
             return_port.send(value)
-            return_port = nil
+            value = return_port = nil
           rescue IOError => e
             # Unclear why this sometimes manifests as this error instead of ClosedError but
             # need to handle them both.

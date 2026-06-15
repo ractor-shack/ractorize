@@ -77,6 +77,7 @@ module Ractorize
       tracker = RactorizedTracker.new
 
       loop do
+        message = nil
         message = receive
 
         message_type = message.is_a?(Array) ? message.first : message
@@ -91,6 +92,7 @@ module Ractorize
           return_port = nil
         in :delete_ractor, ractorized_object_id
           tracker.delete_ractor(ractorized_object_id)
+          nil
         in :__close__
           tracker = nil
           break
@@ -120,20 +122,23 @@ module Ractorize
             tracker.construct_ractorized_object(:class, klass, *args, **opts, &block),
             move: true
           )
-          args = opts = return_port = nil
+          args = opts = return_port = block = nil
         in :construct_thunk, ractorized_object_id, return_value_port, created_in_ractor, return_port
           return_port.send(
             tracker.construct_thunk(ractorized_object_id, return_value_port, created_in_ractor),
             move: true
           )
-          return_value_port = return_port = nil
+          return_value_port = return_port = created_in_ractor = nil
         in :clean_up_after_ractorized_object, ractorized_object_id
           puts "TRACKING_RACTOR: got cleanup message!!"
           tracker.clean_up_after_ractorized_object(ractorized_object_id)
+          nil
         in :clean_up_after_thunk, thunk_id
           tracker.clean_up_after_thunk(thunk_id)
+          nil
         in :created_return_port, ractorized_object_id, return_value_port
           tracker.created_return_port(ractorized_object_id, return_value_port)
+          return_value_port = nil
         else
           raise "TRACKING_RACTOR: couldn't handle the message #{message}!"
         end
