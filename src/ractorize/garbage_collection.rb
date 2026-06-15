@@ -11,6 +11,8 @@ module Ractorize
 
       def cleanup_after_ractorized_object(ractorized_object_id)
         TRACKING_RACTOR << [:cleanup_after_ractorized_object, ractorized_object_id].freeze
+      rescue Ractor::ClosedError
+        # do nothing
       end
 
       private
