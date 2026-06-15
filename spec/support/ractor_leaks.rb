@@ -52,8 +52,6 @@ RSpec.configure do |config|
     ractor_port_count,
     open_ractor_port_count = nil
 
-    next
-
     Timeout.timeout(10) do
       loop do
         ractor_count,

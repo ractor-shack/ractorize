@@ -280,7 +280,7 @@ module Ractorize
 
       case method_name
       when :__close__
-        return_port.<<(object, move: true)
+        return_port&.<<(object, move: true)
         close
         break
       else
