@@ -3,22 +3,26 @@ require_relative "thunk"
 
 module Ractorize
   class RactorizedObject < BasicObject
+    class RactorizedRactor < ::Ractor; end
+
+    attr_reader :__object_id__, :__ractor__
+
     def initialize(mode, *args, **opts, &block)
-      @ractor = ::Ractor.new(name: "#{args.first}<#{args.first.object_id}>", &RACTOR_PROC)
+      @__ractor__ = RactorizedRactor.new(name: "#{args.first}<#{args.first.object_id}>", &RACTOR_PROC)
 
       case mode
       when :object
-        @ractor << :object
+        @__ractor__ << :object
 
         outside_object = args.first
 
         @__target_class__ = outside_object.class
 
         if ::Ractor.shareable?(outside_object)
-          @ractor << outside_object
+          @__ractor__ << outside_object
         else
           ::Ractorize.resolve_all_thunks(outside_object)
-          @ractor.send(outside_object, move: true)
+          @__ractor__.send(outside_object, move: true)
         end
       when :class
         klass, *args = args
@@ -28,29 +32,29 @@ module Ractorize
         to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
 
         if to_move&.any?
-          @ractor << :class_arg_by_arg
-          @ractor << klass
+          @__ractor__ << :class_arg_by_arg
+          @__ractor__ << klass
 
           args.each do |arg|
-            @ractor << :arg
-            @ractor.send(arg, move: to_move.include?(arg))
+            @__ractor__ << :arg
+            @__ractor__.send(arg, move: to_move.include?(arg))
           end
 
           opts.each_pair do |name, value|
-            @ractor << :kwarg
-            @ractor << name
-            @ractor.send(value, move: to_move.include?(value))
+            @__ractor__ << :kwarg
+            @__ractor__ << name
+            @__ractor__.send(value, move: to_move.include?(value))
           end
 
           if block
-            @ractor << :block
-            @ractor << block
+            @__ractor__ << :block
+            @__ractor__ << block
           end
 
-          @ractor << :done
+          @__ractor__ << :done
         else
-          @ractor << :class
-          @ractor << [klass, args.freeze, opts.dup.freeze, block].freeze
+          @__ractor__ << :class
+          @__ractor__ << [klass, args.freeze, opts.dup.freeze, block].freeze
         end
       else
         # :nocov:
@@ -58,6 +62,7 @@ module Ractorize
         # :nocov:
       end
 
+      @__object_id__ = ::Object.instance_method(:object_id).bind_call(self)
       ::Object.instance_method(:freeze).bind(self).call
     end
 
@@ -65,12 +70,12 @@ module Ractorize
 
     def __join__
       __close__
-      @ractor.join
+      @__ractor__.join
       self
     end
 
     def method_missing(method_name, *args, **opts, &block)
-      if @ractor.default_port.closed?
+      if @__ractor__.default_port.closed?
         ::Kernel.raise ::Ractor::ClosedError,
                        "You already closed this Ractorized instance of #{@__target_class__}!\n" \
                        "No more methods can be sent to it but you sent #{method_name}"
@@ -81,7 +86,7 @@ module Ractorize
       to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
 
       if to_move&.any?
-        @ractor << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, !!block]
+        @__ractor__ << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, !!block]
 
         args_port = return_port.receive
         args_port << method_name
@@ -99,7 +104,7 @@ module Ractorize
 
         args_port << :done
       else
-        @ractor << [method_name, args.dup.freeze, opts.dup.freeze, return_port, !!block].freeze
+        @__ractor__ << [method_name, args.dup.freeze, opts.dup.freeze, return_port, !!block].freeze
       end
 
       if block
