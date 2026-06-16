@@ -2,14 +2,18 @@ module Ractorize
   class Thunk < BasicObject
     class EscapingRactorError < ::StandardError; end
 
-    attr_accessor :__return_value_port__, :__ractor__
+    attr_accessor :__return_value_portlike__
 
-    def initialize(return_value_port)
-      self.__ractor__ = ::Ractor.current
-      self.__return_value_port__ = return_value_port
+    def initialize(return_value_portlike)
+      self.__return_value_portlike__ = return_value_portlike
+
+      if __return_value_portlike__.is_a?(::Ractor)
+        ::Object.instance_method(:freeze).bind_call(self)
+      end
     end
 
     def initialize_clone(...)
+      puts "CAREFUL! THUNK CLONED!!"
       # is this actually necessary?? Seems so?
     end
 
@@ -21,33 +25,7 @@ module Ractorize
       __value__.respond_to?(method_name, include_all)
     end
 
-    def __abandon_thunk__
-      __return_value_port__.receive
-      nil
-    end
-
-    def __value__
-      return @__value__ if defined?(@__value__)
-
-      value = if ::Ractor.current == __ractor__
-                __return_value_port__.receive
-              else
-                # :nocov:
-                ::Kernel.raise EscapingRactorError,
-                               "Somehow this thunk was passed between ractors but wasn't resolved first."
-                # :nocov:
-              end
-
-      # :nocov:
-      ::Kernel.raise EscapingRactorError if ::Ractorize::Thunk === value
-      # :nocov:
-
-      @__value__ = value
-
-      ::Object.instance_method(:freeze).bind(self).call
-
-      value
-    end
+    def __value__ = __return_value_portlike__.join.value
 
     def ! = !__value__
     def ==(other) = __value__ == other || super

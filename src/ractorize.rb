@@ -276,20 +276,20 @@ module Ractorize
              end
 
     loop do
-      method_name = method_args = opts = return_port = block_given = nil
-      method_name, method_args, opts, return_port, block_given = receive
+      method_name = method_args = opts = return_value_portlike = block_given = nil
+      method_name, method_args, opts, return_value_portlike, block_given = receive
 
       case method_name
       when :__close__
         ::Kernel.puts "received __close__"
-        return_port&.<<(object, move: true)
+        return_value_portlike&.<<(object, move: true)
         object = nil
         close
         break
       else
         if method_name == :__invoke_arg_by_arg__
           args_port = Ractor::Port.new
-          return_port << args_port
+          return_value_portlike << args_port
 
           method_name = args_port.receive
           method_args, opts = Ractorize.extract_args(args_port)
@@ -301,7 +301,7 @@ module Ractorize
           value = object.__send__(method_name, *method_args, **opts) do |*args, **opts, &b|
             Ractorize.prepare_args(target_class, args, opts, skip_move: true)
 
-            return_port << [:yield, [args.dup.freeze, opts.dup.freeze, b].freeze, block_result_port].freeze
+            return_value_portlike << [:yield, [args.dup.freeze, opts.dup.freeze, b].freeze, block_result_port].freeze
 
             outcome_type, return_value = block_result_port.receive
 
@@ -317,7 +317,7 @@ module Ractorize
             end
           end
 
-          return_port << [:return, value].freeze
+          return_value_portlike << [:return, value].freeze
         else
           value = object.__send__(method_name, *method_args, **opts)
           value = value.__value__ while Ractorize::Thunk === value
@@ -326,7 +326,7 @@ module Ractorize
             # wait, what if value is a ractorized object????
             puts "returnving value, shareable? #{Ractor.shareable?(value)} " \
                  "ractorized object? #{::Ractorize::RactorizedObject === value}"
-            return_port.send(value)
+            return_value_portlike.send([:success, value].freeze)
             value = nil
           rescue IOError => e
             # Unclear why this sometimes manifests as this error instead of ClosedError but

@@ -86,14 +86,14 @@ module Ractorize
                        "No more methods can be sent to it but you sent #{method_name}"
       end
 
-      return_port = ::Ractor::Port.new
-
       to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
 
       if to_move&.any?
-        @__ractor__ << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, !!block]
+        return_value_portlike = ::Ractor::Port.new
 
-        args_port = return_port.receive
+        @__ractor__ << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_value_portlike, !!block]
+
+        args_port = return_value_portlike.receive
         args_port << method_name
 
         args.each do |arg|
@@ -109,7 +109,17 @@ module Ractorize
 
         args_port << :done
       else
-        @__ractor__ << [method_name, args.dup.freeze, opts.dup.freeze, return_port, !!block].freeze
+        return_value_portlike = ::Ractor.new do
+          case receive
+          in :__close__
+            raise ::Ractor::ClosedError
+          in :success, value
+          end
+
+          value
+        end
+
+        @__ractor__ << [method_name, args.dup.freeze, opts.dup.freeze, return_value_portlike, !!block].freeze
       end
 
       if block
@@ -117,7 +127,7 @@ module Ractorize
         value = nil
 
         until stop
-          data = return_port.receive
+          data = return_value_portlike.receive
 
           # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
           # pattern path, but since that's purely defensive I have no interest in testing it.
@@ -145,7 +155,7 @@ module Ractorize
       elsif method_name == :== || method_name == :! || method_name == :!= ||
             method_name == :inspect || method_name == :to_s ||
             method_name.end_with?("?") || method_name == :hash
-        value = return_port.receive
+        value = return_value_portlike.join.value
 
         # :nocov:
         ::Kernel.raise ::Ractorize::Thunk::EscapingRactorError if ::Ractorize::Thunk === value
@@ -153,7 +163,7 @@ module Ractorize
 
         value
       else
-        Thunk.new(return_port)
+        Thunk.new(return_value_portlike)
       end
     end
 
