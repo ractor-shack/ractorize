@@ -188,7 +188,7 @@ RSpec.describe Ractorize do
       end
     end
 
-    it "delegates messages to the target object", :focus do
+    it "delegates messages to the target object" do
       ractor_like_object.send(:object)
       ractor_like_object.send(doubler)
       return_port = Ractor::Port.new
