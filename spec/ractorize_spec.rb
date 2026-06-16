@@ -245,35 +245,45 @@ RSpec.describe Ractorize do
     end
 
     context "when implementing a method that takes a block" do
-      def handle_return_port(return_port, block)
+      def handle_return_port(return_port, &block)
         value = nil
 
+        stop = false
+
         # pretty terrible to repeat a bunch of this logic here, ugg
-        loop do
+        # Maybe we can tell RactorizedObject to work with this thing instead of a ractor??
+        until stop
           # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
           # pattern path, but since that's purely defensive I have no interest in testing it.
-          # :nocov:
-          case return_port.receive
-            # :nocov:
+          data = return_port.receive
+
+          case data
           in :return, value
-            break
+            stop = true
           in :yield, [yielded_args, yielded_opts, yielded_block], block_result_port
             # TODO: yielded_block likely won't work when actually used
             # so we should probably instead just raise an exception
             # TODO: handle break and also raise in the block
-            block_result_port << begin
-              block_result = block.call(*yielded_args, **yielded_opts, &yielded_block)
+            begin
+              broke = true
+              block_result = block.call(*yielded_args.freeze, **yielded_opts.freeze, &yielded_block)
+              broke = false
+            rescue => e
+              puts e
+              puts e.backtrace
+              raise
+            ensure
+              block_result = block_result.__value__ while Ractorize::Thunk === block_result
 
-              [:normal, block_result]
-            rescue LocalJumpError => e
-              case e.reason
-              when :break
-                [:break, e.exit_value]
-              else
-                # :nocov:
-                raise "Not sure how to handle LocalJumpError #{e.reason}"
-                # :nocov:
-              end
+              block_result_port << if broke
+                                     if $!
+                                       :error
+                                     else
+                                       :break
+                                     end
+                                   else
+                                     [:normal, block_result].freeze
+                                   end
             end
           end
         end
@@ -295,9 +305,9 @@ RSpec.describe Ractorize do
           all << [key, value]
         end
 
-        ractor_like_object.send([:each_pair, [], {}, return_port, block])
+        ractor_like_object.send([:each_pair, [], {}, return_port, true])
 
-        value = handle_return_port(return_port, block)
+        value = handle_return_port(return_port, &block)
 
         expect(all).to eq([["foo", "bar"], ["baz", "quux"]])
         expect(value).to eq(h)
@@ -319,17 +329,17 @@ RSpec.describe Ractorize do
 
           return_port = Ractor::Port.new
 
-          block = proc do |key, value|
+          ractor_like_object.send([:each_pair, [], {}, return_port, true])
+
+          value = handle_return_port(return_port) do |key, value|
             all << [key, value]
             break 100
           end
 
-          ractor_like_object.send([:each_pair, [], {}, return_port, block])
-
-          value = handle_return_port(return_port, block)
-
           expect(all).to eq([["foo", "bar"]])
           expect(value).to eq(100)
+          # when unwinding with break the return value doesn't matter
+          return_port.receive
         end
       end
     end

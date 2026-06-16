@@ -127,11 +127,23 @@ module Ractorize
             # TODO: yielded_block likely won't work when actually used
             # so we should probably instead just raise an exception
             # TODO: handle break and also raise in the block
-            block_result = block.call(*yielded_args.freeze, **yielded_opts.freeze, &yielded_block)
+            begin
+              broke = true
+              block_result = block.call(*yielded_args.freeze, **yielded_opts.freeze, &yielded_block)
+              broke = false
+            ensure
+              block_result = block_result.__value__ while ::Ractorize::Thunk === block_result
 
-            block_result = block_result.__value__ while ::Ractorize::Thunk === block_result
-
-            block_result_port << [:normal, block_result].freeze
+              block_result_port << if broke
+                                     if $!
+                                       :error
+                                     else
+                                       :break
+                                     end
+                                   else
+                                     [:normal, block_result].freeze
+                                   end
+            end
           end
         end
 
