@@ -117,39 +117,38 @@ module Ractorize
         value = nil
 
         until stop
-            data = return_port.receive
+          data = return_port.receive
 
+          # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
+          # pattern path, but since that's purely defensive I have no interest in testing it.
 
-            # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
-            # pattern path, but since that's purely defensive I have no interest in testing it.
+          # :nocov:
+          case data
+          # :nocov:
+          in :return, value
+            stop = true
+          in :yield, [yielded_args, yielded_opts, yielded_block], block_result_port
+            # TODO: yielded_block likely won't work when actually used
+            # so we should probably instead just raise an exception
+            # TODO: handle break and also raise in the block
+            begin
+              broke = true
+              block_result = block.call(*yielded_args.freeze, **yielded_opts.freeze, &yielded_block)
+              broke = false
+            ensure
+              block_result = block_result.__value__ while ::Ractorize::Thunk === block_result
 
-            # :nocov:
-            case data
-            # :nocov:
-            in :return, value
-              stop = true
-            in :yield, [yielded_args, yielded_opts, yielded_block], block_result_port
-              # TODO: yielded_block likely won't work when actually used
-              # so we should probably instead just raise an exception
-              # TODO: handle break and also raise in the block
-              begin
-                broke = true
-                block_result = block.call(*yielded_args.freeze, **yielded_opts.freeze, &yielded_block)
-                broke = false
-              ensure
-                block_result = block_result.__value__ while ::Ractorize::Thunk === block_result
-
-                block_result_port << if broke
-                                       if $!
-                                         :error
-                                       else
-                                         :break
-                                       end
+              block_result_port << if broke
+                                     if $!
+                                       :error
                                      else
-                                       [:normal, block_result].freeze
+                                       :break
                                      end
-              end
+                                   else
+                                     [:normal, block_result].freeze
+                                   end
             end
+          end
         end
 
         value
