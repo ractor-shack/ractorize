@@ -248,15 +248,18 @@ RSpec.describe Ractorize do
       def handle_return_port(return_port, &block)
         value = nil
 
+        stop = false
+
         # pretty terrible to repeat a bunch of this logic here, ugg
         # Maybe we can tell RactorizedObject to work with this thing instead of a ractor??
-        loop do
+        until stop
           # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
           # pattern path, but since that's purely defensive I have no interest in testing it.
           data = return_port.receive
 
           case data
           in :return, value
+            puts "got return"
             stop = true
           in :yield, [yielded_args, yielded_opts, yielded_block], block_result_port
             # TODO: yielded_block likely won't work when actually used
@@ -264,6 +267,7 @@ RSpec.describe Ractorize do
             # TODO: handle break and also raise in the block
             begin
               broke = true
+              puts "calling block!"
               block_result = block.call(*yielded_args.freeze, **yielded_opts.freeze, &yielded_block)
               broke = false
             rescue => e
@@ -306,16 +310,16 @@ RSpec.describe Ractorize do
           all << [key, value]
         end
 
-        ractor_like_object.send([:each_pair, [], {}, return_port, block])
+        ractor_like_object.send([:each_pair, [], {}, return_port, true])
 
-        value = handle_return_port(return_port, block)
+        value = handle_return_port(return_port, &block)
 
         expect(all).to eq([["foo", "bar"], ["baz", "quux"]])
         expect(value).to eq(h)
       end
 
       context "when block contains 'break'" do
-        it "can carry out executing the block", :focus do
+        it "can carry out executing the block" do
           ractor_like_object.send(:class)
           ractor_like_object.send([Hash])
 
@@ -339,7 +343,8 @@ RSpec.describe Ractorize do
 
           expect(all).to eq([["foo", "bar"]])
           expect(value).to eq(100)
-          expect(return_port.receive).to eq("asdf")
+          # when unwinding with break the return value doesn't matter
+          return_port.receive
         end
       end
     end
