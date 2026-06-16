@@ -194,8 +194,10 @@ RSpec.describe Ractorize do
       return_port = Ractor::Port.new
       ractor_like_object.send([:set, [5], {}, return_port])
       return_port.receive
+      return_port = Ractor::Port.new
       ractor_like_object.send([:get, [], {}, return_port])
-      expect(return_port.receive).to be(5)
+      thunk_ractor = return_port.receive
+      expect(thunk_ractor.value).to be(5)
       ractor_like_object.send([:__close__, [], {}, return_port])
       ractor_like_object.join
     end
@@ -220,7 +222,9 @@ RSpec.describe Ractorize do
         arg_port << :get
         arg_port << :done
 
-        expect(return_port.receive).to be(5)
+        thunk_ractor = return_port.receive
+
+        expect(thunk_ractor.value).to be(5)
         ractor_like_object.send([:__close__, [], {}, return_port])
         ractor_like_object.join
       end
@@ -234,7 +238,7 @@ RSpec.describe Ractorize do
         ractor_like_object.send([:set, [5], {}, return_port])
         return_port.receive
         ractor_like_object.send([:get, [], {}, return_port])
-        expect(return_port.receive).to be(5)
+        expect(return_port.receive.value).to be(5)
         ractor_like_object.send([:__close__, [], {}, return_port])
         ractor_like_object.join
       end
@@ -307,7 +311,9 @@ RSpec.describe Ractorize do
           return_port = Ractor::Port.new
 
           ractor_like_object.send([:[]=, ["foo", "bar"], {}, return_port])
+          expect(return_port.receive.value).to eq("bar")
           ractor_like_object.send([:[]=, ["baz", "quux"], {}, return_port])
+          expect(return_port.receive.value).to eq("quux")
 
           all = []
 
@@ -355,7 +361,7 @@ RSpec.describe Ractorize do
 
         ractor_like_object.send([:foo, [], {}, return_port])
 
-        expect(return_port.receive).to eq("foobarbaz")
+        expect(return_port.receive.value).to eq("foobarbaz")
       end
     end
   end
@@ -513,7 +519,9 @@ RSpec.describe Ractorize do
 
     context "when there are thunks in the structure" do
       let(:structure) do
-        bar = Ractorize::Thunk.new(Ractor::Port.new.tap { it << "bar" })
+        thunk_ractor = Ractorize::Thunk::ThunkRactor.new
+        thunk_ractor << [:success, "bar"].freeze
+        bar = Ractorize::Thunk.new(thunk_ractor)
 
         [{ a: Struct.new(:foo).new(bar) }]
       end
@@ -525,7 +533,10 @@ RSpec.describe Ractorize do
 
       context "when those thunks are in an object's instance variables" do
         let(:structure) do
-          bar = Ractorize::Thunk.new(Ractor::Port.new.tap { it << "bar" })
+          thunk_ractor = Ractorize::Thunk::ThunkRactor.new
+          thunk_ractor << [:success, "bar"].freeze
+
+          bar = Ractorize::Thunk.new(thunk_ractor)
 
           a = Object.new
           a.singleton_class.attr_accessor :foo

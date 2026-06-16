@@ -141,6 +141,8 @@ module Ractorize
       elsif method_name == :== || method_name == :! || method_name == :!= ||
             method_name == :inspect || method_name == :to_s ||
             method_name.end_with?("?") || method_name == :hash
+        thunk_ractor = return_port.receive
+        value = thunk_ractor.join.value
 
         # :nocov:
         ::Kernel.raise ::Ractorize::Thunk::EscapingRactorError if ::Ractorize::Thunk === value
@@ -148,7 +150,7 @@ module Ractorize
 
         value
       else
-        Thunk.new(return_port)
+        Thunk.new(return_port.receive)
       end
     end
 
