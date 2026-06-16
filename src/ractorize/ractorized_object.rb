@@ -86,14 +86,15 @@ module Ractorize
                        "No more methods can be sent to it but you sent #{method_name}"
       end
 
+      return_port = ::Ractor::Port.new
+
       to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
 
       if to_move&.any?
-        return_value_portlike = ::Ractor::Port.new
 
-        @__ractor__ << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_value_portlike, !!block]
+        @__ractor__ << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, !!block]
 
-        args_port = return_value_portlike.receive
+        args_port = return_port.receive
         args_port << method_name
 
         args.each do |arg|
@@ -109,17 +110,7 @@ module Ractorize
 
         args_port << :done
       else
-        return_value_portlike = ::Ractor.new do
-          case receive
-          in :__close__
-            raise ::Ractor::ClosedError
-          in :success, value
-          end
-
-          value
-        end
-
-        @__ractor__ << [method_name, args.dup.freeze, opts.dup.freeze, return_value_portlike, !!block].freeze
+        @__ractor__ << [method_name, args.dup.freeze, opts.dup.freeze, return_port, !!block].freeze
       end
 
       if block
@@ -127,7 +118,7 @@ module Ractorize
         value = nil
 
         until stop
-          data = return_value_portlike.receive
+          data = return_port.receive
 
           # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
           # pattern path, but since that's purely defensive I have no interest in testing it.
@@ -155,7 +146,8 @@ module Ractorize
       elsif method_name == :== || method_name == :! || method_name == :!= ||
             method_name == :inspect || method_name == :to_s ||
             method_name.end_with?("?") || method_name == :hash
-        value = return_value_portlike.join.value
+        thunk_ractor = return_port.receive
+        value = thunk_ractor.join.value
 
         # :nocov:
         ::Kernel.raise ::Ractorize::Thunk::EscapingRactorError if ::Ractorize::Thunk === value
@@ -163,7 +155,7 @@ module Ractorize
 
         value
       else
-        Thunk.new(return_value_portlike)
+        Thunk.new(return_port.receive)
       end
     end
 
