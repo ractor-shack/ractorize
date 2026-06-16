@@ -63,7 +63,8 @@ module Ractorize
       end
 
       @__object_id__ = ::Object.instance_method(:object_id).bind_call(self)
-      ::Object.instance_method(:freeze).bind(self).call
+
+      ::Ractorize::GarbageCollection.track_ractorized_object(self)
     end
 
     def __close__ = method_missing(:__close__)
