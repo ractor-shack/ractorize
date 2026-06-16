@@ -349,7 +349,7 @@ RSpec.describe Ractorize do
         end
       end
 
-      it "can handle building the object constructor args piece-by-piece" do
+      it "can handle building the object constructor args piece-by-piece", :focus do
         ractor_like_object.send(:class_arg_by_arg)
         ractor_like_object.send(klass)
         ractor_like_object.send(:arg)
@@ -365,7 +365,7 @@ RSpec.describe Ractorize do
 
         ractor_like_object.send([:foo, [], {}, return_port])
 
-        expect(return_port.receive).to eq("foobarbaz")
+        expect(return_port.receive.value).to eq("foobarbaz")
       end
     end
   end
