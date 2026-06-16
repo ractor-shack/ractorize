@@ -238,7 +238,7 @@ RSpec.describe Ractorize do
         ractor_like_object.send([:set, [5], {}, return_port])
         return_port.receive
         ractor_like_object.send([:get, [], {}, return_port])
-        expect(return_port.receive).to be(5)
+        expect(return_port.receive.value).to be(5)
         ractor_like_object.send([:__close__, [], {}, return_port])
         ractor_like_object.join
       end
@@ -349,7 +349,7 @@ RSpec.describe Ractorize do
         end
       end
 
-      it "can handle building the object constructor args piece-by-piece", :focus do
+      it "can handle building the object constructor args piece-by-piece" do
         ractor_like_object.send(:class_arg_by_arg)
         ractor_like_object.send(klass)
         ractor_like_object.send(:arg)
@@ -525,7 +525,9 @@ RSpec.describe Ractorize do
 
     context "when there are thunks in the structure" do
       let(:structure) do
-        bar = Ractorize::Thunk.new(Ractor::Port.new.tap { it << "bar" })
+        thunk_ractor = Ractorize::Thunk::ThunkRactor.new
+        thunk_ractor << [:success, "bar"].freeze
+        bar = Ractorize::Thunk.new(thunk_ractor)
 
         [{ a: Struct.new(:foo).new(bar) }]
       end
@@ -537,7 +539,10 @@ RSpec.describe Ractorize do
 
       context "when those thunks are in an object's instance variables" do
         let(:structure) do
-          bar = Ractorize::Thunk.new(Ractor::Port.new.tap { it << "bar" })
+          thunk_ractor = Ractorize::Thunk::ThunkRactor.new
+          thunk_ractor << [:success, "bar"].freeze
+
+          bar = Ractorize::Thunk.new(thunk_ractor)
 
           a = Object.new
           a.singleton_class.attr_accessor :foo

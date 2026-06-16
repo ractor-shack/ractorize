@@ -91,7 +91,6 @@ module Ractorize
       to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
 
       if to_move&.any?
-
         @__ractor__ << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, !!block]
 
         args_port = return_port.receive
