@@ -188,14 +188,16 @@ RSpec.describe Ractorize do
       end
     end
 
-    it "delegates messages to the target object" do
+    it "delegates messages to the target object", :focus do
       ractor_like_object.send(:object)
       ractor_like_object.send(doubler)
       return_port = Ractor::Port.new
       ractor_like_object.send([:set, [5], {}, return_port])
       return_port.receive
+      return_port = Ractor::Port.new
       ractor_like_object.send([:get, [], {}, return_port])
-      expect(return_port.receive).to be(5)
+      thunk_ractor = return_port.receive
+      expect(thunk_ractor.value).to be(5)
       ractor_like_object.send([:__close__, [], {}, return_port])
       ractor_like_object.join
     end
@@ -410,7 +412,7 @@ RSpec.describe Ractorize do
           end
         end
 
-        it "resolves the inner thunk", :focus do
+        it "resolves the inner thunk" do
           outer = described_class[outer_class].new
           # expect(outer.inner.foo.length).to eq(4)
 

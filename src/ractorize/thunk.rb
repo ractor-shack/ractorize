@@ -23,9 +23,6 @@ module Ractorize
     def initialize(return_value_portlike)
       self.__return_value_portlike__ = return_value_portlike
 
-      if __return_value_portlike__.is_a?(::Ractor)
-        ::Object.instance_method(:freeze).bind_call(self)
-      end
     end
 
     def initialize_clone(...)
@@ -41,7 +38,15 @@ module Ractorize
       __value__.respond_to?(method_name, include_all)
     end
 
-    def __value__ = __return_value_portlike__.join.value
+    def __value__
+      return @__value__ if defined?(@__value__)
+
+      @__value__ = __return_value_portlike__.join.value
+      self.__return_value_portlike__ = nil
+      ::Object.instance_method(:freeze).bind_call(self)
+
+      @__value__
+    end
 
     def ! = !__value__
     def ==(other) = __value__ == other || super
