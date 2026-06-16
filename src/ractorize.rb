@@ -64,6 +64,7 @@ module Ractorize
     # Not sure why that is but we need to handle that case.
     def resolve_all_thunks(structure)
       each_thunk(structure, &:__value__)
+      nil
     end
 
     def to_move(target_class, args)
@@ -246,7 +247,7 @@ module Ractorize
 
   # Putting this in a constant so we can get test coverage on it since not sure how to get coverage
   # on something inside a ractor.
-  RACTOR_PROC = proc do
+  RACTOR_PROC = Ractor.shareable_proc do
     mode = receive
 
     object = case mode
@@ -272,11 +273,13 @@ module Ractorize
              end
 
     loop do
+      method_name = method_args = opts = return_port = block_given = nil
       method_name, method_args, opts, return_port, block_given = receive
 
       case method_name
       when :__close__
-        return_port.<<(object, move: true)
+        return_port&.<<(object, move: true)
+        object = nil
         close
         break
       else
@@ -302,7 +305,10 @@ module Ractorize
             when :normal
               return_value
             when :break
-              break return_value
+              break # return_value
+            when :error
+              # TODO: do something useful in this situation!
+              break
             else
               # :nocov:
               raise "Not sure how to handle outcome_type #{outcome_type}"
@@ -312,11 +318,20 @@ module Ractorize
 
           return_port << [:return, value].freeze
         else
+          thunk_ractor = ::Ractorize::Thunk::ThunkRactor.new
+
+          begin
+            return_port << thunk_ractor
+          rescue Ractor::ClosedError
+            # do nothing
+          end
           value = object.__send__(method_name, *method_args, **opts)
           value = value.__value__ while Ractorize::Thunk === value
 
           begin
-            return_port.send(value)
+            # wait, what if value is a ractorized object?
+            thunk_ractor.send([:success, value].freeze)
+            value = nil
           rescue IOError => e
             # Unclear why this sometimes manifests as this error instead of ClosedError but
             # need to handle them both.
@@ -330,9 +345,12 @@ module Ractorize
           end
         end
       end
+
+      nil
     end
 
-    object
+    nil
+    # object
   rescue => e
     # :nocov:
     puts
