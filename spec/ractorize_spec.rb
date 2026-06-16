@@ -222,7 +222,9 @@ RSpec.describe Ractorize do
         arg_port << :get
         arg_port << :done
 
-        expect(return_port.receive).to be(5)
+        thunk_ractor = return_port.receive
+
+        expect(thunk_ractor.value).to be(5)
         ractor_like_object.send([:__close__, [], {}, return_port])
         ractor_like_object.join
       end
