@@ -117,25 +117,49 @@ module Ractorize
         value = nil
 
         until stop
-          data = return_port.receive
+          begin
+            data = return_port.receive
 
-          # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
-          # pattern path, but since that's purely defensive I have no interest in testing it.
+            ::Kernel.puts "got #{data} in block handling in ro"
 
-          # :nocov:
-          case data
-          # :nocov:
-          in :return, value
-            stop = true
-          in :yield, [yielded_args, yielded_opts, yielded_block], block_result_port
-            # TODO: yielded_block likely won't work when actually used
-            # so we should probably instead just raise an exception
-            # TODO: handle break and also raise in the block
-            block_result = block.call(*yielded_args.freeze, **yielded_opts.freeze, &yielded_block)
+            # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
+            # pattern path, but since that's purely defensive I have no interest in testing it.
 
-            block_result = block_result.__value__ while ::Ractorize::Thunk === block_result
+            # :nocov:
+            case data
+            # :nocov:
+            in :return, value
+              stop = true
+            in :yield, [yielded_args, yielded_opts, yielded_block], block_result_port
+              # TODO: yielded_block likely won't work when actually used
+              # so we should probably instead just raise an exception
+              # TODO: handle break and also raise in the block
+              ::Kernel.puts "calling original block in ro block handling"
+              begin
+                broke = true
+                block_result = block.call(*yielded_args.freeze, **yielded_opts.freeze, &yielded_block)
+                broke = false
+              ensure
+                ::Kernel.puts "in ensure before bailing from break! broke: #{broke} block_result: #{block_result}"
+                ::Kernel.puts "got block result"
+                ::Kernel.puts "got block result of #{block_result}"
+                block_result = block_result.__value__ while ::Ractorize::Thunk === block_result
 
-            block_result_port << [:normal, block_result].freeze
+                block_result_port << if broke
+                                       if $!
+                                         puts $!
+                                         puts $!.backtrace
+                                         :error
+                                       else
+                                         :break
+                                       end
+                                     else
+                                       [:normal, block_result].freeze
+                                     end
+              end
+            end
+          rescue Ractor::Closed
+            ::Kernel.puts "WHOA! closed in block handling in ro????"
           end
         end
 

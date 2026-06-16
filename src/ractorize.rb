@@ -277,7 +277,9 @@ module Ractorize
 
     loop do
       method_name = method_args = opts = return_port = block_given = nil
+      puts "receiveing!"
       method_name, method_args, opts, return_port, block_given = receive
+      puts "got #{method_name}"
 
       case method_name
       when :__close__
@@ -305,17 +307,24 @@ module Ractorize
 
             outcome_type, return_value = block_result_port.receive
 
+            puts "got outcome_type #{outcome_type}"
+
             case outcome_type
             when :normal
               return_value
             when :break
-              break return_value
+              break # return_value
+            when :error
+              # TODO: do something useful in this situation!
+              break
             else
               # :nocov:
               raise "Not sure how to handle outcome_type #{outcome_type}"
               # :nocov:
             end
           end
+
+          puts "done with block"
 
           return_port << [:return, value].freeze
         else
