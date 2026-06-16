@@ -259,7 +259,6 @@ RSpec.describe Ractorize do
 
           case data
           in :return, value
-            puts "got return"
             stop = true
           in :yield, [yielded_args, yielded_opts, yielded_block], block_result_port
             # TODO: yielded_block likely won't work when actually used
@@ -267,7 +266,6 @@ RSpec.describe Ractorize do
             # TODO: handle break and also raise in the block
             begin
               broke = true
-              puts "calling block!"
               block_result = block.call(*yielded_args.freeze, **yielded_opts.freeze, &yielded_block)
               broke = false
             rescue => e
@@ -279,14 +277,11 @@ RSpec.describe Ractorize do
 
               block_result_port << if broke
                                      if $!
-                                       puts "hmmmm error???"
                                        :error
                                      else
-                                       puts "breaking"
                                        :break
                                      end
                                    else
-                                     puts "normal result!"
                                      [:normal, block_result].freeze
                                    end
             end
@@ -492,10 +487,8 @@ RSpec.describe Ractorize do
         # rubocop:disable Lint/UnreachableLoop
         result = ractorized_object.each_pair do |key, value|
           all << [key, value]
-          puts "breaking!"
           break 100
         end
-        puts "done breaking!!"
         # rubocop:enable Lint/UnreachableLoop
 
         expect(result).to be(100)

@@ -117,10 +117,8 @@ module Ractorize
         value = nil
 
         until stop
-          begin
             data = return_port.receive
 
-            ::Kernel.puts "got #{data} in block handling in ro"
 
             # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
             # pattern path, but since that's purely defensive I have no interest in testing it.
@@ -134,21 +132,15 @@ module Ractorize
               # TODO: yielded_block likely won't work when actually used
               # so we should probably instead just raise an exception
               # TODO: handle break and also raise in the block
-              ::Kernel.puts "calling original block in ro block handling"
               begin
                 broke = true
                 block_result = block.call(*yielded_args.freeze, **yielded_opts.freeze, &yielded_block)
                 broke = false
               ensure
-                ::Kernel.puts "in ensure before bailing from break! broke: #{broke} block_result: #{block_result}"
-                ::Kernel.puts "got block result"
-                ::Kernel.puts "got block result of #{block_result}"
                 block_result = block_result.__value__ while ::Ractorize::Thunk === block_result
 
                 block_result_port << if broke
                                        if $!
-                                         puts $!
-                                         puts $!.backtrace
                                          :error
                                        else
                                          :break
@@ -158,9 +150,6 @@ module Ractorize
                                      end
               end
             end
-          rescue Ractor::Closed
-            ::Kernel.puts "WHOA! closed in block handling in ro????"
-          end
         end
 
         value

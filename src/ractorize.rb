@@ -217,7 +217,6 @@ module Ractorize
     def each_instance_of(klass, structure, seen = Set.new, depth = 0, &block)
       depth += 1
       if klass === structure
-        puts "yielding it!!"
         block.call(structure)
       end
       return if seen.include?(structure)
@@ -237,9 +236,7 @@ module Ractorize
         iget = ::Object.instance_method(:instance_variable_get)
 
         ivarsget.bind(structure).call.each do |var|
-          puts "checking #{var} for #{klass}"
           value = iget.bind(structure).call(var)
-          puts "value is nil? #{NilClass === value}"
           each_instance_of(klass, value, seen, depth, &block)
         end
       end
@@ -277,13 +274,10 @@ module Ractorize
 
     loop do
       method_name = method_args = opts = return_port = block_given = nil
-      puts "receiveing!"
       method_name, method_args, opts, return_port, block_given = receive
-      puts "got #{method_name}"
 
       case method_name
       when :__close__
-        ::Kernel.puts "received __close__"
         return_port&.<<(object, move: true)
         object = nil
         close
@@ -307,8 +301,6 @@ module Ractorize
 
             outcome_type, return_value = block_result_port.receive
 
-            puts "got outcome_type #{outcome_type}"
-
             case outcome_type
             when :normal
               return_value
@@ -324,8 +316,6 @@ module Ractorize
             end
           end
 
-          puts "done with block"
-
           return_port << [:return, value].freeze
         else
           thunk_ractor = ::Ractorize::Thunk::ThunkRactor.new
@@ -339,15 +329,12 @@ module Ractorize
           value = value.__value__ while Ractorize::Thunk === value
 
           begin
-            # wait, what if value is a ractorized object????
-            puts "returnving value, shareable? #{Ractor.shareable?(value)} " \
-                 "ractorized object? #{::Ractorize::RactorizedObject === value}"
+            # wait, what if value is a ractorized object?
             thunk_ractor.send([:success, value].freeze)
             value = nil
           rescue IOError => e
             # Unclear why this sometimes manifests as this error instead of ClosedError but
             # need to handle them both.
-            puts "ERROR: why??? IOError?? #{e}"
             # :nocov:
             raise unless e.message == "closed stream"
             # :nocov:
@@ -355,15 +342,11 @@ module Ractorize
             # Whoa... this error inherits from StopIteration and will kill the loop!!!
             # Nothing really to do here but keep the loop going and handle other
             # method calls to the ractorized object from other ractors.
-            ::Kernel.puts "hmmmm in ClosedError does that matter??"
           end
         end
       end
 
       nil
-    rescue => e
-      puts "WAIT WTF NOT HANDLED??? #{e}"
-      raise e
     end
 
     nil

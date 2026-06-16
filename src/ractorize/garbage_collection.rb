@@ -6,8 +6,6 @@ module Ractorize
         ObjectSpace.define_finalizer(ractorized_object, &finalize_proc)
         Object.instance_method(:freeze).bind_call(ractorized_object)
 
-        puts "tracking ro #{ractorized_object.__object_id__}"
-
         TRACKING_RACTOR << [:track_ractorized_object, ractorized_object].freeze
       end
 
@@ -21,7 +19,6 @@ module Ractorize
 
       def finalize_proc
         proc do |ractorized_object_id|
-          puts "cleaning up after ractorized object #{ractorized_object_id}!"
           ::Ractorize::GarbageCollection.cleanup_after_ractorized_object(ractorized_object_id)
         end
       end

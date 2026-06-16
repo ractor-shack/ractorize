@@ -22,7 +22,6 @@ module Ractorize
 
     def initialize(return_value_portlike)
       self.__return_value_portlike__ = return_value_portlike
-
     end
 
     def initialize_clone(...)
