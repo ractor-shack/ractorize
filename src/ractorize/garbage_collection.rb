@@ -32,6 +32,7 @@ module Ractorize
         case receive
         in :track_ractorized_object, ractorized_object
           tracker.track_ractorized_object(ractorized_object)
+          ractorized_object = nil
         in :cleanup_after_ractorized_object, ractorized_object_id
           tracker.cleanup_after_ractorized_object(ractorized_object_id)
         end
