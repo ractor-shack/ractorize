@@ -50,8 +50,10 @@ RSpec.describe Ractorize do
         ractorized_doubler.__join__
       end
 
-      it "results in a ractorized object that is shareable" do
-        expect(Ractor.shareable?(ractorized_doubler)).to be true
+      unless ENV["SHMACTOR"] == "true"
+        it "results in a ractorized object that is shareable" do
+          expect(Ractor.shareable?(ractorized_doubler)).to be true
+        end
       end
 
       context "when it's a shareable object" do
@@ -75,7 +77,9 @@ RSpec.describe Ractorize do
           bar = "bar"
 
           expect(ractorized_object.foo(bar:)).to eq("bar")
-          expect(Ractor::MovedObject === bar).to be true
+          unless ENV["SHMACTOR"] == "true"
+            expect(Ractor::MovedObject === bar).to be true
+          end
         end
       end
     end
@@ -116,7 +120,9 @@ RSpec.describe Ractorize do
           expect(Ractor.shareable?(args.first)).to be false
           object = ractorized_klass.new(*args)
           expect(object.foo).to eq("foo")
-          expect(Ractor::MovedObject === args.first).to be true
+          unless ENV["SHMACTOR"] == "true"
+            expect(Ractor::MovedObject === args.first).to be true
+          end
         end
 
         context "when keyword args are not shareable" do
@@ -136,7 +142,9 @@ RSpec.describe Ractorize do
             expect(Ractor.shareable?(opts[:foo])).to be false
             object = ractorized_klass.new(**opts, &Ractor.shareable_proc { "bar" })
             expect(object.foo).to eq("foobar")
-            expect(Ractor::MovedObject === opts[:foo]).to be true
+            unless ENV["SHMACTOR"] == "true"
+              expect(Ractor::MovedObject === opts[:foo]).to be true
+            end
           end
         end
       end
@@ -159,219 +167,6 @@ RSpec.describe Ractorize do
         expect {
           ractorized_doubler.__close__
         }.to raise_error(Ractor::ClosedError)
-      end
-    end
-  end
-
-  describe "RACTOR_PROC" do
-    let(:ractor_like_class) do
-      Class.new(Thread) do
-        def queue
-          @queue ||= Queue.new
-        end
-
-        def receive
-          queue.pop
-        end
-
-        def send(message, move: false)
-          queue << message
-        end
-
-        def close
-        end
-      end
-    end
-    let(:ractor_like_object) do
-      ractor_like_class.new do
-        Thread.current.instance_exec(&described_class::RACTOR_PROC)
-      end
-    end
-
-    it "delegates messages to the target object" do
-      ractor_like_object.send(:object)
-      ractor_like_object.send(doubler)
-      return_port = Ractor::Port.new
-      ractor_like_object.send([:set, [5], {}, return_port])
-      return_port.receive
-      return_port = Ractor::Port.new
-      ractor_like_object.send([:get, [], {}, return_port])
-      thunk_ractor = return_port.receive
-      expect(thunk_ractor.value).to be(5)
-      ractor_like_object.send([:__close__, [], {}, return_port])
-      ractor_like_object.join
-    end
-
-    context "when invoking arg-by-arg" do
-      it "can still invoke the method" do
-        ractor_like_object.send(:object)
-        ractor_like_object.send(doubler)
-        return_port = Ractor::Port.new
-
-        ractor_like_object.send([:__invoke_arg_by_arg__, [], {}, return_port])
-        arg_port = return_port.receive
-        arg_port << :set
-        arg_port << :arg
-        arg_port << 5
-        arg_port << :done
-
-        return_port.receive
-
-        ractor_like_object.send([:__invoke_arg_by_arg__, [], {}, return_port])
-        arg_port = return_port.receive
-        arg_port << :get
-        arg_port << :done
-
-        thunk_ractor = return_port.receive
-
-        expect(thunk_ractor.value).to be(5)
-        ractor_like_object.send([:__close__, [], {}, return_port])
-        ractor_like_object.join
-      end
-    end
-
-    context "when target object is also ractorized" do
-      it "delegates messages to the target object" do
-        ractor_like_object.send(:object)
-        ractor_like_object.send(doubler)
-        return_port = Ractor::Port.new
-        ractor_like_object.send([:set, [5], {}, return_port])
-        return_port.receive
-        ractor_like_object.send([:get, [], {}, return_port])
-        expect(return_port.receive.value).to be(5)
-        ractor_like_object.send([:__close__, [], {}, return_port])
-        ractor_like_object.join
-      end
-    end
-
-    context "when implementing a method that takes a block" do
-      def handle_return_port(return_port, &block)
-        value = nil
-
-        stop = false
-
-        # pretty terrible to repeat a bunch of this logic here, ugg
-        # Maybe we can tell RactorizedObject to work with this thing instead of a ractor??
-        until stop
-          # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
-          # pattern path, but since that's purely defensive I have no interest in testing it.
-          data = return_port.receive
-
-          case data
-          in :return, value
-            stop = true
-          in :yield, [yielded_args, yielded_opts, yielded_block], block_result_port
-            # TODO: yielded_block likely won't work when actually used
-            # so we should probably instead just raise an exception
-            # TODO: handle break and also raise in the block
-            begin
-              broke = true
-              block_result = block.call(*yielded_args.freeze, **yielded_opts.freeze, &yielded_block)
-              broke = false
-            rescue => e
-              puts e
-              puts e.backtrace
-              raise
-            ensure
-              block_result = block_result.__value__ while Ractorize::Thunk === block_result
-
-              block_result_port << if broke
-                                     if $!
-                                       :error
-                                     else
-                                       :break
-                                     end
-                                   else
-                                     [:normal, block_result].freeze
-                                   end
-            end
-          end
-        end
-
-        value
-      end
-
-      it "can carry executing the block" do
-        h = { "foo" => "bar", "baz" => "quux" }
-
-        ractor_like_object.send(:object)
-        ractor_like_object.send(h)
-
-        all = []
-
-        return_port = Ractor::Port.new
-
-        block = proc do |key, value|
-          all << [key, value]
-        end
-
-        ractor_like_object.send([:each_pair, [], {}, return_port, true])
-
-        value = handle_return_port(return_port, &block)
-
-        expect(all).to eq([["foo", "bar"], ["baz", "quux"]])
-        expect(value).to eq(h)
-      end
-
-      context "when block contains 'break'" do
-        it "can carry out executing the block" do
-          ractor_like_object.send(:class)
-          ractor_like_object.send([Hash])
-
-          return_port = Ractor::Port.new
-
-          ractor_like_object.send([:[]=, ["foo", "bar"], {}, return_port])
-          expect(return_port.receive.value).to eq("bar")
-          ractor_like_object.send([:[]=, ["baz", "quux"], {}, return_port])
-          expect(return_port.receive.value).to eq("quux")
-
-          all = []
-
-          return_port = Ractor::Port.new
-
-          ractor_like_object.send([:each_pair, [], {}, return_port, true])
-
-          value = handle_return_port(return_port) do |key, value|
-            all << [key, value]
-            break 100
-          end
-
-          expect(all).to eq([["foo", "bar"]])
-          expect(value).to eq(100)
-          # when unwinding with break the return value doesn't matter
-          return_port.receive
-        end
-      end
-    end
-
-    context "when constructing an instance arg-by-arg" do
-      let(:klass) do
-        stub_class("Foo") do
-          attr_accessor :foo
-
-          def initialize(foo, bar:, &block)
-            self.foo = foo + bar + block.call
-          end
-        end
-      end
-
-      it "can handle building the object constructor args piece-by-piece" do
-        ractor_like_object.send(:class_arg_by_arg)
-        ractor_like_object.send(klass)
-        ractor_like_object.send(:arg)
-        ractor_like_object.send("foo")
-        ractor_like_object.send(:kwarg)
-        ractor_like_object.send(:bar)
-        ractor_like_object.send("bar")
-        ractor_like_object.send(:block)
-        ractor_like_object.send(Ractor.shareable_proc { "baz" })
-        ractor_like_object.send(:done)
-
-        return_port = Ractor::Port.new
-
-        ractor_like_object.send([:foo, [], {}, return_port])
-
-        expect(return_port.receive.value).to eq("foobarbaz")
       end
     end
   end

@@ -23,6 +23,9 @@ Style/CommentedKeyword:
 Style/DoubleNegation:
   Enabled: false
 
+Style/EmptyClassDefinition:
+  Enabled: false
+
 Naming/MethodParameterName:
   Enabled: false
 

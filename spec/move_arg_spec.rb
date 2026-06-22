@@ -26,12 +26,14 @@ RSpec.describe Ractorize do
         Ractorize.move_arg(String)
       end
 
-      it "automatically moves strings that are passed to a ractorized object to prevent duplication" do
-        s = "asdf"
+      unless ENV["SHMACTOR"] == "true"
+        it "automatically moves strings that are passed to a ractorized object to prevent duplication" do
+          s = "asdf"
 
-        expect {
-          expect(ractorized_foo.foo(s)).to eq("asdf")
-        }.to change { Ractor::MovedObject === s }.from(false).to(true)
+          expect {
+            expect(ractorized_foo.foo(s)).to eq("asdf")
+          }.to change { Ractor::MovedObject === s }.from(false).to(true)
+        end
       end
     end
 
@@ -55,9 +57,11 @@ RSpec.describe Ractorize do
 
         s = "baz"
 
-        expect {
-          expect(ractorized_foo.foo(s)).to eq("baz")
-        }.to change { Ractor::MovedObject === s }.from(false).to(true)
+        unless ENV["SHMACTOR"] == "true"
+          expect {
+            expect(ractorized_foo.foo(s)).to eq("baz")
+          }.to change { Ractor::MovedObject === s }.from(false).to(true)
+        end
       end
     end
 
@@ -73,9 +77,11 @@ RSpec.describe Ractorize do
           expect(ractorized_bar.bar(s)).to eq(s)
         }.to_not change { Ractor::MovedObject === s }
 
-        expect {
-          expect(ractorized_foo.foo(s)).to eq("asdf")
-        }.to change { Ractor::MovedObject === s }.from(false).to(true)
+        unless ENV["SHMACTOR"] == "true"
+          expect {
+            expect(ractorized_foo.foo(s)).to eq("asdf")
+          }.to change { Ractor::MovedObject === s }.from(false).to(true)
+        end
       end
     end
   end

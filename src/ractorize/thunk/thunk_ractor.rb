@@ -1,6 +1,8 @@
 module Ractorize
   class Thunk < BasicObject
-    class ThunkRactor < ::Ractor
+    ThunkRactor = ::Class.new(::ENV["SHMACTOR"] == "true" ? ::Shmactor : ::Ractor)
+
+    class ThunkRactor
       class << self
         def new
           super do

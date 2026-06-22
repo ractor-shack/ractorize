@@ -284,7 +284,7 @@ module Ractorize
         break
       else
         if method_name == :__invoke_arg_by_arg__
-          args_port = Ractor::Port.new
+          args_port = Ractorize::RactorizedObject::RactorizedRactor::Port.new
           return_port << args_port
 
           method_name = args_port.receive
@@ -292,7 +292,7 @@ module Ractorize
         end
 
         if block_given
-          block_result_port = Ractor::Port.new
+          block_result_port = Ractorize::RactorizedObject::RactorizedRactor::Port.new
 
           value = object.__send__(method_name, *method_args, **opts) do |*args, **opts, &b|
             Ractorize.prepare_args(target_class, args, opts, skip_move: true)

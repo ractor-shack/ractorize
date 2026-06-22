@@ -24,7 +24,8 @@ module Ractorize
       end
     end
 
-    TRACKING_RACTOR = Ractor.new do
+    TrackingRactor = ::Class.new(::ENV["SHMACTOR"] == "true" ? ::Shmactor : ::Ractor)
+    TRACKING_RACTOR = TrackingRactor.new do
       tracker = Tracker.new
 
       loop do

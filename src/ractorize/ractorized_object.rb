@@ -3,7 +3,7 @@ require_relative "thunk"
 
 module Ractorize
   class RactorizedObject < BasicObject
-    class RactorizedRactor < ::Ractor; end
+    RactorizedRactor = ::Class.new(::ENV["SHMACTOR"] == "true" ? ::Shmactor : ::Ractor)
 
     attr_reader :__object_id__, :__ractor__
 
@@ -82,7 +82,7 @@ module Ractorize
                        "No more methods can be sent to it but you sent #{method_name}"
       end
 
-      return_port = ::Ractor::Port.new
+      return_port = ::Ractorize::RactorizedObject::RactorizedRactor::Port.new
 
       to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
 
