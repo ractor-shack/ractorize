@@ -40,10 +40,12 @@ RSpec.configure do |config|
   # Seems like we can't use config.around do |example| I assume because the specs memoize stuff
   # preventing garbage collection and it's still not unreferenced until example goes away
   config.before(:suite) do
+    # rubocop:disable Style/GlobalVars
     $original_ractor_count,
     $original_open_ractor_count,
     $original_ractor_port_count,
     $original_open_ractor_port_count = ractor_and_port_counts
+    # rubocop:enable Style/GlobalVars
   end
 
   config.after(:suite) do
@@ -59,10 +61,12 @@ RSpec.configure do |config|
         ractor_port_count,
         open_ractor_port_count = ractor_and_port_counts
 
+        # rubocop:disable Style/GlobalVars
         if ractor_count == $original_ractor_count &&
            ractor_port_count == $original_ractor_port_count
           break
         end
+        # rubocop:enable Style/GlobalVars
 
         GC.start
 
@@ -84,6 +88,7 @@ RSpec.configure do |config|
     pp ractor_and_port_counts
     pp ractors_and_ports
 
+    # rubocop:disable Style/GlobalVars
     leaked_ractors = ractor_count - $original_ractor_count
 
     raise "Leaked ractors: #{leaked_ractors}" if leaked_ractors > 0
@@ -91,5 +96,6 @@ RSpec.configure do |config|
     leaked_ports = ractor_port_count - $original_ractor_port_count
 
     raise "Leaked ports: #{leaked_ports}" if leaked_ports > 0
+    # rubocop:enable Style/GlobalVars
   end
 end

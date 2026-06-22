@@ -31,3 +31,9 @@ Naming/MethodParameterName:
 
 RSpec/DescribedClass:
   Enabled: false
+
+Rake/ClassDefinitionInTask:
+  Enabled: false
+
+Style/SpecialGlobalVars:
+  Enabled: false

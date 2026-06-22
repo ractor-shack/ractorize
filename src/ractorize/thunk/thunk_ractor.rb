@@ -10,9 +10,8 @@ module Ractorize
             in :__close__
               raise ::Ractor::ClosedError
             in :success, value
+              value
             end
-
-            value
           end
         end
       end

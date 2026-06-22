@@ -273,7 +273,9 @@ module Ractorize
              end
 
     loop do
-      method_name = method_args = opts = return_port = block_given = nil
+      # rubocop:disable Lint/UselessAssignment
+      value = method_name = method_args = opts = return_port = block_given = nil
+      # rubocop:enable Lint/UselessAssignment
       method_name, method_args, opts, return_port, block_given = receive
 
       case method_name
@@ -306,9 +308,11 @@ module Ractorize
               return_value
             when :break
               break # return_value
+              # rubocop:disable Lint/DuplicateBranch
             when :error
               # TODO: do something useful in this situation!
               break
+              # rubocop:enable Lint/DuplicateBranch
             else
               # :nocov:
               raise "Not sure how to handle outcome_type #{outcome_type}"
@@ -331,7 +335,6 @@ module Ractorize
           begin
             # wait, what if value is a ractorized object?
             thunk_ractor.send([:success, value].freeze)
-            value = nil
           rescue IOError => e
             # Unclear why this sometimes manifests as this error instead of ClosedError but
             # need to handle them both.
