@@ -44,7 +44,7 @@ non_spec_tasks = [:rubocop]
 task "suite:all:parallel" do
   require "pty"
 
-  class FoobaraSuiteTaskRunner
+  class ParallelSuiteTaskRunner
     class << self
       def run!(spec_tasks:, depends_on_spec_tasks:, non_spec_tasks:)
         command = new(spec_tasks:, depends_on_spec_tasks:, non_spec_tasks:)
@@ -155,5 +155,5 @@ task "suite:all:parallel" do
     end
   end
 
-  FoobaraSuiteTaskRunner.run!(spec_tasks:, depends_on_spec_tasks:, non_spec_tasks:)
+  ParallelSuiteTaskRunner.run!(spec_tasks:, depends_on_spec_tasks:, non_spec_tasks:)
 end

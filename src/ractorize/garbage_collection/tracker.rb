@@ -1,10 +1,12 @@
 module Ractorize
   module GarbageCollection
     class Tracker
-      attr_accessor :ractorized_object_id_to_ractor
+      attr_accessor :ractorized_object_id_to_ractor,
+                    :thunk_id_to_ractor
 
       def initialize
         self.ractorized_object_id_to_ractor = ObjectSpace::WeakMap.new
+        self.thunk_id_to_ractor = ObjectSpace::WeakMap.new
       end
 
       def track_ractorized_object(ractorized_object)
@@ -14,6 +16,19 @@ module Ractorize
       def cleanup_after_ractorized_object(ractorized_object_id)
         ractor = ractorized_object_id_to_ractor.delete(ractorized_object_id)
         ractor&.<<(:__close__)
+      rescue Ractor::ClosedError
+        # do nothing
+      end
+
+      def track_thunk(thunk_id, ractor)
+        thunk_id_to_ractor[thunk_id] = ractor
+      end
+
+      def cleanup_after_thunk(thunk_id)
+        ractor = thunk_id_to_ractor.delete(thunk_id)
+        ractor&.<<(:__close__)
+      rescue Ractor::ClosedError
+        # do nothing
       end
     end
   end

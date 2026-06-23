@@ -135,11 +135,8 @@ module Ractorize
               block_result = block_result.__value__ while ::Ractorize::Thunk === block_result
 
               block_result_port << if broke
-                                     if $!
-                                       :error
-                                     else
-                                       :break
-                                     end
+                                     # TODO: handle error situation
+                                     :break
                                    else
                                      [:normal, block_result].freeze
                                    end

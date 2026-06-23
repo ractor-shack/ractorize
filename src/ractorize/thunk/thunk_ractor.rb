@@ -6,9 +6,12 @@ module Ractorize
       class << self
         def new
           super do
+            # SimpleCov seems to want us to handle the case where nothing matches but that would be an error
+            # :nocov:
             case receive
+            # :nocov:
             in :__close__
-              raise ::ThunkRactor::ClosedError
+              # do nothing
             in :success, value
               value
             end

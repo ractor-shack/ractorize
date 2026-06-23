@@ -152,10 +152,6 @@ module Ractorize
       each_instance_of(Thunk, structure, seen, 0, &)
     end
 
-    def each_ractorized_object(structure, seen = Set.new, &)
-      each_instance_of(RactorizedObject, structure, seen, 0, &)
-    end
-
     def extract_args(port_like)
       args = []
       opts = {}
@@ -281,12 +277,8 @@ module Ractorize
             when :normal
               return_value
             when :break
-              break # return_value
-              # rubocop:disable Lint/DuplicateBranch
-            when :error
-              # TODO: do something useful in this situation!
+              # TODO: handle error situation
               break
-              # rubocop:enable Lint/DuplicateBranch
             else
               # :nocov:
               raise "Not sure how to handle outcome_type #{outcome_type}"
@@ -300,6 +292,7 @@ module Ractorize
 
           begin
             return_port << thunk_ractor
+            return_port = nil
           rescue Ractor::ClosedError
             # do nothing
           end

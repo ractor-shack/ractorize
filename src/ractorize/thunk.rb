@@ -2,14 +2,18 @@ module Ractorize
   class Thunk < BasicObject
     class EscapingRactorError < ::StandardError; end
 
-    attr_accessor :__thunk_ractor__
+    attr_accessor :__thunk_ractor__, :__object_id__
 
     def initialize(return_value_portlike)
       self.__thunk_ractor__ = return_value_portlike
+      self.__object_id__ = ::Object.instance_method(:object_id).bind_call(self)
+      ::Ractorize::GarbageCollection.track_thunk(self)
     end
 
     def initialize_clone(...)
-      puts "CAREFUL! THUNK CLONED!!"
+      # :nocov:
+      raise "CAREFUL! THUNK CLONED!!"
+      # :nocov:
       # is this actually necessary?? Seems so?
     end
 
