@@ -6,7 +6,11 @@ module Ractorize
         ObjectSpace.define_finalizer(ractorized_object, &finalize_proc)
         Object.instance_method(:freeze).bind_call(ractorized_object)
 
-        TRACKING_RACTOR << [:track_ractorized_object, ractorized_object].freeze
+        begin
+          TRACKING_RACTOR << [:track_ractorized_object, ractorized_object].freeze
+        rescue TrackingRactor::ClosedError
+          # do nothing
+        end
       end
 
       def cleanup_after_ractorized_object(ractorized_object_id)
@@ -32,7 +36,6 @@ module Ractorize
         case receive
         in :track_ractorized_object, ractorized_object
           tracker.track_ractorized_object(ractorized_object)
-          ractorized_object = nil
         in :cleanup_after_ractorized_object, ractorized_object_id
           tracker.cleanup_after_ractorized_object(ractorized_object_id)
         end

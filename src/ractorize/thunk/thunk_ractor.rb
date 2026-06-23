@@ -8,7 +8,7 @@ module Ractorize
           super do
             case receive
             in :__close__
-              raise ::Ractor::ClosedError
+              raise ::ThunkRactor::ClosedError
             in :success, value
               value
             end

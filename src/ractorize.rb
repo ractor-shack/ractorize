@@ -156,32 +156,6 @@ module Ractorize
       each_instance_of(RactorizedObject, structure, seen, 0, &)
     end
 
-    def send_args(port_like,
-                  klass,
-                  args,
-                  opts,
-                  block = nil)
-      to_move = ::Ractorize.prepare_args(klass, args, opts)
-
-      args.each do |arg|
-        port_like << :arg
-        port_like.send(arg, move: to_move&.include?(arg))
-      end
-
-      opts.each_pair do |name, value|
-        port_like << :kwarg
-        port_like << name
-        port_like.send(value, move: to_move&.include?(value))
-      end
-
-      if block
-        port_like << :block
-        port_like << block
-      end
-
-      port_like << :done
-    end
-
     def extract_args(port_like)
       args = []
       opts = {}
