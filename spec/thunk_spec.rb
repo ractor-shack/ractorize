@@ -2,7 +2,7 @@ RSpec.describe Ractorize::GarbageCollection do
   context "when a thunk is garbage collected before it is resolved" do
     it "has its ractor closed" do
       stub_class("SomeClass") do
-        def wait_ractor = @wait_ractor = Ractor.new { receive }
+        def wait_ractor = @wait_ractor = BaseRactor.new { receive }
 
         def foo
           @wait_ractor.join
