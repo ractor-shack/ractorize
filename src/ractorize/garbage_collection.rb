@@ -1,5 +1,7 @@
 module Ractorize
   module GarbageCollection
+    class TrackingRactor < BaseRactor; end
+
     class << self
       def track_ractorized_object(ractorized_object)
         # We have to define the finalizer here, not in the tracker, because it's not frozen yet
@@ -51,7 +53,6 @@ module Ractorize
       end
     end
 
-    TrackingRactor = ::Class.new(::ENV["SHMACTOR"] == "true" ? ::Shmactor : ::Ractor)
     TRACKING_RACTOR = TrackingRactor.new do
       tracker = Tracker.new
 

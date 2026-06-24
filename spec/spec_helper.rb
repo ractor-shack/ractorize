@@ -26,7 +26,6 @@ end
 
 Dir["#{__dir__}/support/**/*.rb"].each { |f| require f }
 
-require "shmactor"
 require "ractorize"
 
 require "foobara/spec_helpers/all"

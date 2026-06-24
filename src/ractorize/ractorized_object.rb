@@ -3,7 +3,7 @@ require_relative "thunk"
 
 module Ractorize
   class RactorizedObject < BasicObject
-    RactorizedRactor = ::Class.new(::ENV["SHMACTOR"] == "true" ? ::Shmactor : ::Ractor)
+    class RactorizedRactor < ::BaseRactor; end
 
     attr_reader :__object_id__, :__ractor__
 
@@ -179,8 +179,7 @@ module Ractorize
     def ==(other) = method_missing(:==, other) || super
     def !=(other) = method_missing(:==, other) || super
     def ! = method_missing(:!)
-    def equal?(other) = method_missing(:equal?, other)
-
+    # def equal?(other) = method_missing(:equal?, other) || super
     def to_s = inspect
 
     def inspect

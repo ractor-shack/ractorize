@@ -1,8 +1,8 @@
+require_relative "../base_ractor"
+
 module Ractorize
   class Thunk < BasicObject
-    ThunkRactor = ::Class.new(::ENV["SHMACTOR"] == "true" ? ::Shmactor : ::Ractor)
-
-    class ThunkRactor
+    class ThunkRactor < ::BaseRactor
       class << self
         def new
           super do
