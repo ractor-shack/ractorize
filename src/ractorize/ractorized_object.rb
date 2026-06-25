@@ -5,6 +5,14 @@ module Ractorize
   class RactorizedObject < BasicObject
     class RactorizedRactor < ::BaseRactor; end
 
+    class << self
+      def method_should_use_thunk?(method_symbol)
+        method_symbol != :== && method_symbol != :! && method_symbol != :!= &&
+          method_symbol != :inspect && method_symbol != :to_s &&
+          !method_symbol.end_with?("?") && method_symbol != :hash
+      end
+    end
+
     attr_reader :__object_id__, :__ractor__
 
     def initialize(mode, *args, **opts, &block)
@@ -83,11 +91,14 @@ module Ractorize
       end
 
       return_port = ::Ractorize::RactorizedObject::RactorizedRactor::Port.new
+      thunk_ractor = if !block && RactorizedObject.method_should_use_thunk?(method_name)
+                       ::Ractorize::Thunk::ThunkRactor.new
+                     end
 
       to_move = ::Ractorize.prepare_args(@__target_class__, args, opts)
 
       if to_move&.any?
-        @__ractor__ << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, !!block]
+        @__ractor__ << [:__invoke_arg_by_arg__, [].freeze, {}.freeze, return_port, thunk_ractor, !!block]
 
         args_port = return_port.receive
         args_port << method_name
@@ -105,7 +116,7 @@ module Ractorize
 
         args_port << :done
       else
-        @__ractor__ << [method_name, args.dup.freeze, opts.dup.freeze, return_port, !!block].freeze
+        @__ractor__ << [method_name, args.dup.freeze, opts.dup.freeze, return_port, thunk_ractor, !!block].freeze
       end
 
       if block
@@ -147,19 +158,18 @@ module Ractorize
         value
       # Let's assume the user would rather block on all predicate methods than
       # incorrectly get a non-truthy value (thunk is always truthy even if it evaluates as nil/false)
-      elsif method_name == :== || method_name == :! || method_name == :!= ||
-            method_name == :inspect || method_name == :to_s ||
-            method_name.end_with?("?") || method_name == :hash
-        thunk_ractor = return_port.receive
-        value = thunk_ractor.join.value
+      elsif thunk_ractor
+        return_port.close
+        Thunk.new(thunk_ractor)
+      else
+        value = return_port.receive
+        return_port.close
 
         # :nocov:
         ::Kernel.raise ::Ractorize::Thunk::EscapingRactorError if ::Ractorize::Thunk === value
         # :nocov:
 
         value
-      else
-        Thunk.new(return_port.receive)
       end
     end
 

@@ -244,13 +244,18 @@ module Ractorize
 
     loop do
       # rubocop:disable Lint/UselessAssignment
-      value = method_name = method_args = opts = return_port = block_given = nil
+      value = method_name = method_args = opts = return_port = thunk_ractor = block_given = nil
       # rubocop:enable Lint/UselessAssignment
-      method_name, method_args, opts, return_port, block_given = receive
+      method_name, method_args, opts, return_port, thunk_ractor, block_given = receive
 
       case method_name
       when :__close__
-        return_port&.<<(object, move: true)
+        begin
+          thunk_ractor&.send([:success, object].freeze, move: true)
+        rescue RactorizedRactor::ClosedError
+          # do nothing
+        end
+
         object = nil
         close
         break
@@ -288,20 +293,15 @@ module Ractorize
 
           return_port << [:return, value].freeze
         else
-          thunk_ractor = ::Ractorize::Thunk::ThunkRactor.new
-
-          begin
-            return_port << thunk_ractor
-            return_port = nil
-          rescue Ractor::ClosedError
-            # do nothing
-          end
           value = object.__send__(method_name, *method_args, **opts)
           value = value.__value__ while Ractorize::Thunk === value
 
           begin
-            # wait, what if value is a ractorized object?
-            thunk_ractor.send([:success, value].freeze)
+            if thunk_ractor
+              thunk_ractor.send([:success, value].freeze)
+            else
+              return_port << value
+            end
           rescue IOError => e
             # Unclear why this sometimes manifests as this error instead of ClosedError but
             # need to handle them both.

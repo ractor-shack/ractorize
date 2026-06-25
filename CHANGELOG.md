@@ -1,3 +1,13 @@
+## [0.0.8] - 2026-06-24
+
+- Add GarbageCollector to close abandoned RactorizedObject ractors and Thunk ractors
+- Switch thunks to work off of Ractor instead of Ractor::Port due to port/ractor leaks
+- Block on #hash and delegate to super in #==/#!=
+- Significant test suite improvements:
+  - Remove awkward RACTORIZE_PROC tests and instead use the shmactor gem to get to 100% branch coverage
+  - Parallelize the build and run a shmactor build to get full coverage of ractor procs
+  - Check for leaked ractors/ports after test suite and fail the build on any memory leaks
+
 ## [0.0.7] - 2026-06-06
 
 - Closed Ractor::Ports sometimes give IOError instead of Ractor::ClosedError so handle both

@@ -37,3 +37,9 @@ Rake/ClassDefinitionInTask:
 
 Style/SpecialGlobalVars:
   Enabled: false
+
+Style/StringConcatenation:
+  Enabled: false
+
+RSpec/LeakyConstantDeclaration:
+  Enabled: false

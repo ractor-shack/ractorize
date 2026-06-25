@@ -158,12 +158,10 @@ RSpec.describe Ractorize do
         expect(ractorized_doubler.get).to eq(5)
         ractorized_doubler.double
         expect(ractorized_doubler.get).to eq(10)
-        ractorized_doubler.__close__
+        non_ractorized_doubler = ractorized_doubler.__close__
 
-        # We can run into a deadlock if we don't sleep here, ugg.
-        # This can happen if the ractor is closed and we send a message to it after it is closed.
-        # The return port we send to the Thunk will never actually get a value.
-        sleep 0.5
+        expect(non_ractorized_doubler.get).to be(10)
+
         expect {
           ractorized_doubler.__close__
         }.to raise_error(Ractor::ClosedError)
