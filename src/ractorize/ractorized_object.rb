@@ -3,8 +3,6 @@ require_relative "thunk"
 
 module Ractorize
   class RactorizedObject < BasicObject
-    class RactorizedRactor < ::BaseRactor; end
-
     class << self
       def method_should_use_thunk?(method_symbol)
         method_symbol != :== && method_symbol != :! && method_symbol != :!= &&
@@ -16,7 +14,7 @@ module Ractorize
     attr_reader :__object_id__, :__ractor__
 
     def initialize(mode, *args, **opts, &block)
-      @__ractor__ = RactorizedRactor.new(name: "#{args.first}<#{args.first.object_id}>", &RACTOR_PROC)
+      @__ractor__ = RactorizedRactor.new(name: "#{args.first}<#{args.first.object_id}>".freeze)
 
       case mode
       when :object
