@@ -1,7 +1,5 @@
 module Ractorize
   module GarbageCollection
-    class TrackingRactor < BaseRactor; end
-
     class << self
       def track_ractorized_object(ractorized_object)
         # We have to define the finalizer here, not in the tracker, because it's not frozen yet
@@ -52,30 +50,5 @@ module Ractorize
         end
       end
     end
-
-    TRACKING_RACTOR = TrackingRactor.new do
-      tracker = Tracker.new
-
-      loop do
-        # SimpleCov branch coverage doesn't like that we aren't testing not matching anything
-        # but this does result in an error unlike case/when so no point in checking that.
-        # :nocov:
-        case receive
-          # :nocov:
-        in :track_ractorized_object, ractorized_object
-          tracker.track_ractorized_object(ractorized_object)
-        in :cleanup_after_ractorized_object, ractorized_object_id
-          tracker.cleanup_after_ractorized_object(ractorized_object_id)
-        in :track_thunk, thunk_id, thunk_ractor
-          tracker.track_thunk(thunk_id, thunk_ractor)
-        in :cleanup_after_thunk, thunk_id
-          tracker.cleanup_after_thunk(thunk_id)
-        end
-      rescue TrackingRactor::ClosedError
-        # do nothing
-      end
-    end
-
-    private_constant :TRACKING_RACTOR
   end
 end
