@@ -47,6 +47,11 @@ module Ractorize
                 object = nil
                 close
                 break
+              when :__target_object_id__
+                return_port = method_args
+
+                target_object_id = ::Object.instance_method(:object_id).bind_call(object)
+                return_port << target_object_id
               else
                 if method_name == :__invoke_arg_by_arg__
                   args_port = Ractorize::RactorizedObject::RactorizedRactor::Port.new

@@ -21,7 +21,7 @@ module Ractorize
         @__ractor__ << :object
 
         outside_object = args.first
-
+        @__target_object_id__ = ::Object.instance_method(:object_id).bind_call(outside_object)
         @__target_class__ = outside_object.class
 
         if ::Ractor.shareable?(outside_object)
@@ -62,6 +62,10 @@ module Ractorize
           @__ractor__ << :class
           @__ractor__ << [klass, args.freeze, opts.dup.freeze, block].freeze
         end
+
+        return_port = ::Ractor::Port.new
+        @__ractor__ << [:__target_object_id__, return_port].freeze
+        @__target_object_id__ = return_port.receive
       else
         # :nocov:
         ::Kernel.raise "Invalid mode #{mode}"
@@ -190,11 +194,11 @@ module Ractorize
     # def equal?(other) = method_missing(:equal?, other) || super
     def to_s = inspect
 
+    # delegating this to the target object increases risk of a deadlock since
+    # sometimes #inspect calls #inspect on other objects and can lead to reentry and thus deadlock
     def inspect
       object_id = ::Object.instance_method(:object_id).bind(self).call
-      moved_object_inspect = method_missing(:inspect)
-
-      "RactorizedObject<#{object_id}>[#{moved_object_inspect}]".freeze
+      "RactorizedObject<#{object_id}>[#{@__target_class__}<#{@__target_object_id__}>]}"
     end
   end
 end
