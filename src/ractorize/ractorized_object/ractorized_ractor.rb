@@ -39,7 +39,9 @@ module Ractorize
               case method_name
               when :__close__
                 begin
-                  thunk_ractor&.send([:success, object].freeze, move: true)
+                  # Time is not movable but also not shareable!
+                  move = !Ractor.shareable?(object) && !(Time === object)
+                  thunk_ractor&.send([:success, object].freeze, move:)
                 rescue RactorizedRactor::ClosedError
                   # do nothing
                 end

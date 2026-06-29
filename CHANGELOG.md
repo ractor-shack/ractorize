@@ -1,3 +1,8 @@
+## [0.0.9] - 2026-06-29
+
+- Fix bug that results from moving Time, which is neither shareable nor movable!
+- Handle deadlocks that seem to arise from re-entrant #inspect calls
+
 ## [0.0.8] - 2026-06-24
 
 - Add GarbageCollector to close abandoned RactorizedObject ractors and Thunk ractors
