@@ -102,6 +102,7 @@ RSpec.describe "thunk cloning" do
       # expect(cloned_thunk3).to eq("bar")
       # expect(cloned_thunk3.__resolved__?).to be_truthy
 
+      # rubocop:disable Lint/UselessAssignment
       ractors = [
         thunk,
         cloned_thunk1,
@@ -110,13 +111,11 @@ RSpec.describe "thunk cloning" do
         cloned_thunk4
       ].map(&:__thunk_ractor__)
 
-      # rubocop:disable Lint/UselessAssignment
       thunk,
-      cloned_thunk1,
-      cloned_thunk2,
-      cloned_thunk3,
-      cloned_thunk4 = nil
-      # rubocop:enable Lint/UselessAssignment
+cloned_thunk1,
+cloned_thunk2,
+cloned_thunk3,
+cloned_thunk4 = nil
 
       GC.start
       GC.start
@@ -125,6 +124,8 @@ RSpec.describe "thunk cloning" do
       GC.start
 
       ractors = nil
+      # rubocop:enable Lint/UselessAssignment
+
       GC.start
     end
   end
