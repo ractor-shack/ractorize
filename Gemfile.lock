@@ -1,9 +1,4 @@
 PATH
-  remote: ../shmactor
-  specs:
-    shmactor (0.0.1)
-
-PATH
   remote: .
   specs:
     ractorize (0.0.9)
@@ -140,6 +135,7 @@ GEM
       ostruct
     ruby-progressbar (1.13.0)
     shellany (0.0.1)
+    shmactor (0.0.1)
     simplecov (0.22.0)
       docile (~> 1.1)
       simplecov-html (~> 0.11)
@@ -170,7 +166,7 @@ DEPENDENCIES
   rubocop-rake
   rubocop-rspec
   ruby-prof
-  shmactor!
+  shmactor
   simplecov
 
 CHECKSUMS
@@ -232,7 +228,7 @@ CHECKSUMS
   ruby-prof (2.0.5) sha256=dbc3b5112089538ac33303145db0cbd77cbdcdbc05b09e44a967ff72a36d6c0e
   ruby-progressbar (1.13.0) sha256=80fc9c47a9b640d6834e0dc7b3c94c9df37f08cb072b7761e4a71e22cff29b33
   shellany (0.0.1) sha256=0e127a9132698766d7e752e82cdac8250b6adbd09e6c0a7fbbb6f61964fedee7
-  shmactor (0.0.1)
+  shmactor (0.0.1) sha256=2c004312f84e197232df17630f58f7233e721d3624f9f407dc9d340b3eb5b72f
   simplecov (0.22.0) sha256=fe2622c7834ff23b98066bb0a854284b2729a569ac659f82621fc22ef36213a5
   simplecov-html (0.13.2) sha256=bd0b8e54e7c2d7685927e8d6286466359b6f16b18cb0df47b508e8d73c777246
   simplecov_json_formatter (0.1.4) sha256=529418fbe8de1713ac2b2d612aa3daa56d316975d307244399fa4838c601b428

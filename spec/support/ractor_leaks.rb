@@ -49,8 +49,6 @@ RSpec.configure do |config|
   end
 
   config.after(:suite) do
-    # next
-
     ractor_count,
     open_ractor_count,
     ractor_port_count,
