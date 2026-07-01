@@ -94,7 +94,7 @@ RSpec.describe "thunk cloning" do
         cloned_thunk3,
         cloned_thunk4
       ].each do |thunk|
-        puts Object.instance_method(:object_id).bind_call(thunk)
+        puts Object.instance_method(:__id__).bind_call(thunk)
         expect(Ractorize::Thunk === thunk).to be true
         expect(Ractor.shareable?(thunk)).to be false
         expect(thunk.__resolved__?).to be_falsey
@@ -102,8 +102,14 @@ RSpec.describe "thunk cloning" do
 
       expect(cloned_thunk3).to eq("bar")
       expect(cloned_thunk3.__resolved__?).to be_truthy
-
-      puts "Done with test!!"
+      #
+      # ractors = [
+      #   thunk,
+      #   cloned_thunk1,
+      #   cloned_thunk2,
+      #   cloned_thunk3,
+      #   cloned_thunk4
+      # ].map(&:__thunk_ractor__)
       # rubocop:disable Lint/UselessAssignment
       thunk,
         cloned_thunk1,
@@ -118,7 +124,7 @@ RSpec.describe "thunk cloning" do
       1_000_000.times { Object.new }
       GC.start
 
-      puts "exiting test!"
+      ractors = nil
     end
   end
 end

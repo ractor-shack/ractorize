@@ -14,7 +14,7 @@ module Ractorize
       end
 
       def track_thunk(thunk)
-        # We have to define the finalizer here, not in the tracker, because it's not frozen yet
+        # We have to define the finalizer here, not in the tracker, because it's not shareable
         ObjectSpace.define_finalizer(thunk, &finalize_thunk_proc)
 
         begin
@@ -27,8 +27,8 @@ module Ractorize
       def thunk_cloned(old_thunk, new_thunk)
         ractor = old_thunk.__thunk_ractor__
 
-        # We have to define the finalizer here, not in the tracker, because it's not frozen yet
-        ObjectSpace.define_finalizer(new_thunk, &finalize_thunk_proc)
+        # We have to define the finalizer here, not in the tracker, because it's not shareable
+        # ObjectSpace.define_finalizer(new_thunk, &finalize_thunk_proc)
 
         begin
           TRACKING_RACTOR << [

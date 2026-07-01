@@ -25,7 +25,6 @@ module Ractorize
       def track_thunk(thunk_id, ractor)
         puts "tracking #{thunk_id} to #{ractor}"
         thunk_id_to_ractor[thunk_id] = ractor
-        puts thunk_id_to_ractor.to_h
       end
 
       def thunk_cloned(old_thunk_id, new_thunk_id, thunk_ractor)
@@ -38,20 +37,13 @@ module Ractorize
           ractor_to_thunk_ids[thunk_ractor] = [old_thunk_id, new_thunk_id]
         end
 
+        puts "tracking #{new_thunk_id} to #{thunk_ractor} in thunk_cloned"
         thunk_id_to_ractor[new_thunk_id] = thunk_ractor
       end
 
       def cleanup_after_thunk(thunk_id)
         puts "cleaning up after thunk #{thunk_id}"
-        puts "thunk_id_to_ractor is #{thunk_id_to_ractor.to_h}"
-        puts "ractor_to_thunk_ids is #{ractor_to_thunk_ids.to_h}"
         ractor = thunk_id_to_ractor.delete(thunk_id)
-
-        if ractor
-          puts "ractor here"
-        else
-          puts "no ractor here"
-        end
 
         return unless ractor
 
