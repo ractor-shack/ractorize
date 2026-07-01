@@ -100,31 +100,42 @@ RSpec.describe "thunk cloning" do
         expect(thunk.__resolved__?).to be_falsey
       end
 
-      expect(cloned_thunk3).to eq("bar")
-      expect(cloned_thunk3.__resolved__?).to be_truthy
-      #
-      # ractors = [
-      #   thunk,
-      #   cloned_thunk1,
-      #   cloned_thunk2,
-      #   cloned_thunk3,
-      #   cloned_thunk4
-      # ].map(&:__thunk_ractor__)
-      # rubocop:disable Lint/UselessAssignment
-      thunk,
+      # expect(cloned_thunk3).to eq("bar")
+      # expect(cloned_thunk3.__resolved__?).to be_truthy
+
+      ractors = [
+        thunk,
         cloned_thunk1,
         cloned_thunk2,
         cloned_thunk3,
-        cloned_thunk4 = nil
+        cloned_thunk4
+      ].map(&:__thunk_ractor__)
+
+      puts "ractors in spec are:"
+      pp ractors.map(&:inspect)
+
+      puts "going to set thunks to nil"
+      # rubocop:disable Lint/UselessAssignment
+      thunk,
+      cloned_thunk1,
+      cloned_thunk2,
+      cloned_thunk3,
+      cloned_thunk4 = nil
       # rubocop:enable Lint/UselessAssignment
 
+      puts "running gc"
       GC.start
       GC.start
       GC.start
       1_000_000.times { Object.new }
       GC.start
 
+      sleep 4
+      puts "finally going to set ractors to nil"
+      pp ractors
       ractors = nil
+      GC.start
+      puts "exiting test"
     end
   end
 end

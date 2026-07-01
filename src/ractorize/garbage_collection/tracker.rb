@@ -6,9 +6,10 @@ module Ractorize
                     :ractor_to_thunk_ids
 
       def initialize
+        puts "initializing tracker!"
         self.ractorized_object_id_to_ractor = ObjectSpace::WeakMap.new
         self.thunk_id_to_ractor = ObjectSpace::WeakMap.new
-        self.ractor_to_thunk_ids = ObjectSpace::WeakMap.new
+        self.ractor_to_thunk_ids = ObjectSpace::WeakKeyMap.new
       end
 
       def track_ractorized_object(ractorized_object)
@@ -16,6 +17,7 @@ module Ractorize
       end
 
       def cleanup_after_ractorized_object(ractorized_object_id)
+        puts "cleaning up after ractorized object!! hmmmmm"
         ractor = ractorized_object_id_to_ractor.delete(ractorized_object_id)
         ractor&.<<(:__close__)
       rescue Ractor::ClosedError
@@ -23,7 +25,7 @@ module Ractorize
       end
 
       def track_thunk(thunk_id, ractor)
-        puts "tracking #{thunk_id} to #{ractor}"
+        puts "tracking thunk #{thunk_id} to #{ractor}"
         thunk_id_to_ractor[thunk_id] = ractor
       end
 
@@ -31,23 +33,42 @@ module Ractorize
         thunk_ids = ractor_to_thunk_ids[thunk_ractor]
 
         if thunk_ids
-          puts "appending for #{new_thunk_id} from #{old_thunk_id} with ractor #{thunk_ractor}"
+          puts "appending!!"
           thunk_ids << new_thunk_id
         else
+          puts "starting with a pair"
           ractor_to_thunk_ids[thunk_ractor] = [old_thunk_id, new_thunk_id]
         end
 
-        puts "tracking #{new_thunk_id} to #{thunk_ractor} in thunk_cloned"
         thunk_id_to_ractor[new_thunk_id] = thunk_ractor
+
+        puts "done cloning:"
+
+        # pp thunk_id_to_ractor.to_h
+        # pp ractor_to_thunk_ids.to_h
+        #
+        puts ::Object.instance_method(:class).bind_call(thunk_ractor)
       end
 
       def cleanup_after_thunk(thunk_id)
-        puts "cleaning up after thunk #{thunk_id}"
+        puts "cleaning up after #{thunk_id}"
         ractor = thunk_id_to_ractor.delete(thunk_id)
+
+        unless ractor
+          puts "wtf no ractors???"
+          thunk_id_to_ractor.to_h.inspect
+        end
 
         return unless ractor
 
         thunk_ids = ractor_to_thunk_ids[ractor]
+
+        if thunk_ids.nil?
+          puts "wtf no thunk ids???"
+          # pp ractor_to_thunk_ids.keys.map(&:inspect)
+        else
+          puts "thunk_ids are #{thunk_ids.inspect}"
+        end
 
         if thunk_ids
           thunk_ids.delete(thunk_id)
