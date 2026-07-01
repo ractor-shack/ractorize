@@ -43,3 +43,6 @@ Style/StringConcatenation:
 
 RSpec/LeakyConstantDeclaration:
   Enabled: false
+
+RSpec/PredicateMatcher:
+  Enabled: false

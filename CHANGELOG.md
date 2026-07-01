@@ -1,3 +1,7 @@
+## [0.0.10] - 2026-06-30
+
+- Handle thunks being cloned
+
 ## [0.0.9] - 2026-06-29
 
 - Fix bug that results from moving Time, which is neither shareable nor movable!

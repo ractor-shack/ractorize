@@ -1,4 +1,4 @@
 module Ractorize
-  VERSION = "0.0.9".freeze
+  VERSION = "0.0.10".freeze
   MINIMUM_RUBY_VERSION = ">= 4.0.0".freeze
 end
