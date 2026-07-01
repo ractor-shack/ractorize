@@ -10,12 +10,19 @@ module Ractorize
       ::Ractorize::GarbageCollection.track_thunk(self)
     end
 
-    def initialize_clone(...)
-      # :nocov:
-      raise "CAREFUL! THUNK CLONED!!"
-      # :nocov:
-      # is this actually necessary?? Seems so?
+    def initialize_clone(original_thunk)
+      if __resolved__? && original_thunk.__resolved__?
+        # Seems this could happen if we had a frozen thunk whose @__value__ is not shareable
+        # Since the thunk's ractor is already gone nothing to worry about
+        return
+      end
+
+      self.__object_id__ = ::Object.instance_method(:object_id).bind_call(self)
+
+      ::Ractorize::GarbageCollection.thunk_cloned(original_thunk, self)
     end
+
+    def __resolved__? = defined?(@__value__)
 
     def method_missing(...)
       __value__.__send__(...)

@@ -1,6 +1,6 @@
-if ENV["SHMACTOR"] == "true"
-  require "shmactor"
+require "shmactor"
 
+if ENV["SHMACTOR"] == "true"
   Shmactor.activate!
   BaseRactor = Shmactor
 end

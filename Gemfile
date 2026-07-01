@@ -28,6 +28,6 @@ group :test do
   gem "rspec"
   gem "rspec-its"
   gem "ruby-prof"
-  gem "shmactor" # , path: "../shmactor"
+  gem "shmactor", path: "../shmactor"
   gem "simplecov"
 end

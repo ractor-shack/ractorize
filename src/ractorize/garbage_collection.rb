@@ -24,6 +24,24 @@ module Ractorize
         end
       end
 
+      def thunk_cloned(old_thunk, new_thunk)
+        ractor = old_thunk.__thunk_ractor__
+
+        # We have to define the finalizer here, not in the tracker, because it's not frozen yet
+        ObjectSpace.define_finalizer(new_thunk, &finalize_thunk_proc)
+
+        begin
+          TRACKING_RACTOR << [
+            :thunk_cloned,
+            old_thunk.__object_id__,
+            new_thunk.__object_id__,
+            ractor
+          ].freeze
+        rescue TrackingRactor::ClosedError
+          # do nothing
+        end
+      end
+
       def cleanup_after_ractorized_object(ractorized_object_id)
         TRACKING_RACTOR << [:cleanup_after_ractorized_object, ractorized_object_id].freeze
       rescue Ractor::ClosedError

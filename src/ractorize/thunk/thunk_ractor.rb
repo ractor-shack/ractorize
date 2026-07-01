@@ -9,12 +9,12 @@ module Ractorize
             # SimpleCov seems to want us to handle the case where nothing matches but that would be an error
             # :nocov:
             case receive
-            # :nocov:
             in :__close__
               # do nothing
             in :success, value
               value
             end
+            # :nocov:
           end
         end
       end
