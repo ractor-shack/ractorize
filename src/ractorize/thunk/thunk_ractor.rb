@@ -7,9 +7,9 @@ module Ractorize
         def new
           super do
             # SimpleCov seems to want us to handle the case where nothing matches but that would be an error
-            # :nocov:
+            # simplecov:disable
             case receive
-            # :nocov:
+            # simplecov:enable
             in :__close__
               # do nothing
             in :success, value

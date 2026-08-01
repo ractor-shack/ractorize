@@ -27,9 +27,9 @@ module Ractorize
 
                        klass.new(*args.freeze, **opts.freeze, &block)
                      else
-                       # :nocov:
+                       # simplecov:disable
                        raise "Invalid mode #{mode}"
-                       # :nocov:
+                       # simplecov:enable
                      end
 
             loop do
@@ -80,9 +80,9 @@ module Ractorize
                       # TODO: handle error situation
                       break
                     else
-                      # :nocov:
+                      # simplecov:disable
                       raise "Not sure how to handle outcome_type #{outcome_type}"
-                      # :nocov:
+                      # simplecov:enable
                     end
                   end
 
@@ -100,9 +100,9 @@ module Ractorize
                   rescue IOError => e
                     # Unclear why this sometimes manifests as this error instead of ClosedError but
                     # need to handle them both.
-                    # :nocov:
+                    # simplecov:disable
                     raise unless e.message == "closed stream"
-                    # :nocov:
+                    # simplecov:enable
                   rescue RactorizedRactor::ClosedError
                     # Whoa... this error inherits from StopIteration and will kill the loop!!!
                     # Nothing really to do here but keep the loop going and handle other
@@ -113,27 +113,27 @@ module Ractorize
 
               nil
             rescue RactorizedRactor::ClosedError => e
-              # :nocov:
+              # simplecov:disable
               puts "unexpected closed error!"
               puts e.backtrace
               error = UnexpectedClosedError.new
               error.set_backtrace(e.backtrace)
 
               raise error
-              # :nocov:
+              # simplecov:enable
             end
 
             nil
           # object
           rescue => e
-            # :nocov:
+            # simplecov:disable
             puts
             puts "an unhandled error!!! #{e.class} #{e.message} #{e}"
             puts e.backtrace
             puts
 
             raise
-            # :nocov:
+            # simplecov:enable
           end
         end
       end

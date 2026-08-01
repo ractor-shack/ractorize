@@ -1,3 +1,7 @@
+## [0.0.11] - 2026-07-31
+
+- Log if a RactorizedRactor is taken down via ClosedError
+
 ## [0.0.10] - 2026-06-30
 
 - Handle thunks being cloned

@@ -67,9 +67,9 @@ module Ractorize
         @__ractor__ << [:__target_object_id__, return_port].freeze
         @__target_object_id__ = return_port.receive
       else
-        # :nocov:
+        # simplecov:disable
         ::Kernel.raise "Invalid mode #{mode}"
-        # :nocov:
+        # simplecov:enable
       end
 
       @__object_id__ = ::Object.instance_method(:object_id).bind_call(self)
@@ -131,9 +131,9 @@ module Ractorize
           # Seems SimpleCov branch coverage doesn't like that we don't test the non-exhaustive
           # pattern path, but since that's purely defensive I have no interest in testing it.
 
-          # :nocov:
+          # simplecov:disable
           case data
-          # :nocov:
+          # simplecov:enable
           in :return, value
             stop = true
           in :yield, [yielded_args, yielded_opts, yielded_block], block_result_port
@@ -167,19 +167,19 @@ module Ractorize
         value = return_port.receive
         return_port.close
 
-        # :nocov:
+        # simplecov:disable
         ::Kernel.raise ::Ractorize::Thunk::EscapingRactorError if ::Ractorize::Thunk === value
-        # :nocov:
+        # simplecov:enable
 
         value
       end
     end
 
     def respond_to?(method_name, include_all = false)
-      # :nocov:
+      # simplecov:disable
       # This line is only here for when commenting out < BasicObject when debugging stuff
       return super if ::Object === self
-      # :nocov:
+      # simplecov:enable
 
       respond_to_missing?(method_name, include_all)
     end

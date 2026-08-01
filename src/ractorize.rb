@@ -25,16 +25,16 @@ module Ractorize
       @auto_freeze = @auto_freeze ? @auto_freeze.dup : []
 
       unless Ractor.shareable?(target)
-        # :nocov:
+        # simplecov:disable
         raise "#{target} isn't shareable so can't use it to auto-freeze"
-        # :nocov:
+        # simplecov:enable
       end
 
       @auto_freeze << if class_or_proc
                         unless Ractor.shareable?(class_or_proc)
-                          # :nocov:
+                          # simplecov:disable
                           raise "#{class_or_proc} isn't shareable so can't use it to auto-freeze"
-                          # :nocov:
+                          # simplecov:enable
                         end
 
                         [target, class_or_proc]
@@ -49,16 +49,16 @@ module Ractorize
       @move_arg = @move_arg ? @move_arg.dup : []
 
       unless Ractor.shareable?(target)
-        # :nocov:
+        # simplecov:disable
         raise "#{target} isn't shareable so can't use it to auto-freeze"
-        # :nocov:
+        # simplecov:enable
       end
 
       @move_arg << if class_or_proc
                      unless Ractor.shareable?(class_or_proc)
-                       # :nocov:
+                       # simplecov:disable
                        raise "#{class_or_proc} isn't shareable so can't use it to auto-freeze"
-                       # :nocov:
+                       # simplecov:enable
                      end
 
                      [target, class_or_proc]
@@ -189,9 +189,9 @@ module Ractorize
         when :done
           break
         else
-          # :nocov:
+          # simplecov:disable
           ::Kernel.raise "Unknown class_by_arg arg type #{arg_type}"
-          # :nocov:
+          # simplecov:enable
         end
       end
 
