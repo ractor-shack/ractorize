@@ -3,6 +3,8 @@ require_relative "../base_ractor"
 module Ractorize
   class RactorizedObject < BasicObject
     class RactorizedRactor < ::BaseRactor
+      class UnexpectedClosedError < StandardError; end
+
       class << self
         def new(name: nil)
           super do
@@ -31,9 +33,7 @@ module Ractorize
                      end
 
             loop do
-              # rubocop:disable Lint/UselessAssignment
               value = method_name = method_args = opts = return_port = thunk_ractor = block_given = nil
-              # rubocop:enable Lint/UselessAssignment
               method_name, method_args, opts, return_port, thunk_ractor, block_given = receive
 
               case method_name
@@ -103,7 +103,7 @@ module Ractorize
                     # :nocov:
                     raise unless e.message == "closed stream"
                     # :nocov:
-                  rescue Ractor::ClosedError
+                  rescue RactorizedRactor::ClosedError
                     # Whoa... this error inherits from StopIteration and will kill the loop!!!
                     # Nothing really to do here but keep the loop going and handle other
                     # method calls to the ractorized object from other ractors.
@@ -112,6 +112,15 @@ module Ractorize
               end
 
               nil
+            rescue RactorizedRactor::ClosedError => e
+              # :nocov:
+              puts "unexpected closed error!"
+              puts e.backtrace
+              error = UnexpectedClosedError.new
+              error.set_backtrace(e.backtrace)
+
+              raise error
+              # :nocov:
             end
 
             nil

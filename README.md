@@ -274,6 +274,15 @@ Note that if you call either `#__close__` or `#__join__` on the object, then the
 
 An easy way to avoid the deadlock is just don't make any use of such an object after closing it.
 
+### Objects returned from a method called on a ractorized object might be cloned!
+
+You might have a "void" method where you don't care about the return value but it also doesn't
+return `nil` instead it just returns the last expression arbitrarily.
+
+This return value (or parts of it) will be cloned by CRuby/Ractor if it's not shareable!
+
+Confusing stuff can happen with certain types of objects when cloned, such as open files.
+
 ## Fine print
 
 Ractors are still experimental and so this gem is also still experimental.

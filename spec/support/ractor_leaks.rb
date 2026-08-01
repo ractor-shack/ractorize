@@ -56,6 +56,8 @@ RSpec.configure do |config|
 
     Timeout.timeout(5) do
       loop do
+        GC.start
+
         ractor_count,
         open_ractor_count,
         ractor_port_count,
@@ -68,11 +70,7 @@ RSpec.configure do |config|
         end
         # rubocop:enable Style/GlobalVars
 
-        GC.start
-
         sleep 0.1
-
-        1_000_000.times.map { Object.new }
       end
     end
   rescue Timeout::Error
