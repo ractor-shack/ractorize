@@ -1,3 +1,7 @@
+## [0.0.12] - 2026-08-10
+
+- Add ractor state to RactorizedObject#inspect
+
 ## [0.0.11] - 2026-07-31
 
 - Log if a RactorizedRactor is taken down via ClosedError

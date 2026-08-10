@@ -198,7 +198,9 @@ module Ractorize
     # sometimes #inspect calls #inspect on other objects and can lead to reentry and thus deadlock
     def inspect
       object_id = ::Object.instance_method(:object_id).bind(self).call
-      "RactorizedObject<#{object_id}>[#{@__target_class__}<#{@__target_object_id__}>]}"
+      "RactorizedObject<#{object_id}>[#{@__target_class__}<#{@__target_object_id__}>]} #{__state__}"
     end
+
+    def __state__ = @__ractor__.inspect[/ (\w+)>\z/, 1]
   end
 end
