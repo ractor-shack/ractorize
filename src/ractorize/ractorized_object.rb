@@ -24,12 +24,7 @@ module Ractorize
         @__target_object_id__ = ::Object.instance_method(:object_id).bind_call(outside_object)
         @__target_class__ = outside_object.class
 
-        if ::Ractor.shareable?(outside_object)
-          @__ractor__ << outside_object
-        else
-          ::Ractorize.resolve_all_thunks(outside_object)
-          @__ractor__.send(outside_object, move: true)
-        end
+        @__ractor__.send(outside_object, move: true)
       when :class
         klass, *args = args
 
