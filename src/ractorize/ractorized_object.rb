@@ -159,9 +159,8 @@ module Ractorize
         value = return_port.receive
         return_port.close
 
-        # simplecov:disable
-        ::Kernel.raise ::Ractorize::Thunk::EscapingRactorError if ::Ractorize::Thunk === value
-        # simplecov:enable
+        # It's important we don't accidentally return a thunk (truthy) instead of nil/false (falsey)
+        value = value.__value__ while ::Ractorize::Thunk === value
 
         value
       end
