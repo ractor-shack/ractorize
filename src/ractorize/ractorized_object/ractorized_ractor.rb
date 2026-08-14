@@ -89,7 +89,6 @@ module Ractorize
                   return_port << [:return, value].freeze
                 else
                   value = object.__send__(method_name, *method_args, **opts)
-                  value = value.__value__ while Ractorize::Thunk === value
 
                   begin
                     if thunk_ractor

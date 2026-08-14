@@ -213,7 +213,7 @@ RSpec.describe Ractorize do
           end
         end
 
-        it "resolves the inner thunk" do
+        it "can handle nested thunks" do
           outer = described_class[outer_class].new
           expect(outer.inner.foo.length).to eq(4)
           expect(Ractorize::Thunk === outer.inner.foo.length).to be true
@@ -228,7 +228,7 @@ RSpec.describe Ractorize do
           expect(value).to eq("asdf")
           expect(Ractorize::Thunk === value).to be true
           expect(Ractorize::Thunk === value.length).to be true
-          expect(Ractorize::Thunk === value.__value__).to be false
+          expect(Ractorize::Thunk === value.__value__).to be true
         end
       end
     end
