@@ -30,14 +30,16 @@ RSpec.describe "possible deadlock situation" do
     GLOBALS = globals
   end
 
+  after do
+    [:GLOBALS, :RactorizedA, :RactorizedB].each do |const|
+      Object.__send__(:remove_const, const)
+    end
+  end
+
   it "does not deadlock" do
     thunk = GLOBALS.ractorized_a.foo
 
     expect(Ractorize::Thunk === thunk).to be true
     expect(thunk).to eq("foobar")
-
-    [:GLOBALS, :RactorizedA, :RactorizedB].each do |const|
-      Object.__send__(:remove_const, const)
-    end
   end
 end
