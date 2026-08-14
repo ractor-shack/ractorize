@@ -1,3 +1,7 @@
+## [0.1.13] - 2026-08-13
+
+- Calling methods with blocks no longer pre-emptively resolve thunks, avoiding potential deadlocks
+
 ## [0.0.12] - 2026-08-10
 
 - Add ractor state to RactorizedObject#inspect
