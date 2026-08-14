@@ -1,3 +1,7 @@
+## [0.0.14] - 2026-08-14
+
+- Make sure thunks are dethunked in predicate contexts involving blocks or chains of thunks
+
 ## [0.0.13] - 2026-08-13
 
 - Calling methods with blocks no longer pre-emptively resolve thunks, avoiding potential deadlocks

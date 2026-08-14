@@ -88,7 +88,10 @@ module Ractorize
       end
 
       return_port = ::Ractorize::RactorizedObject::RactorizedRactor::Port.new
-      thunk_ractor = if !block && RactorizedObject.method_should_use_thunk?(method_name)
+
+      can_use_thunk = RactorizedObject.method_should_use_thunk?(method_name)
+
+      thunk_ractor = if !block && can_use_thunk
                        ::Ractorize::Thunk::ThunkRactor.new
                      end
 
@@ -147,6 +150,11 @@ module Ractorize
                                    end
             end
           end
+        end
+
+        unless can_use_thunk
+          # It's important we don't accidentally return a thunk (truthy) instead of nil/false (falsey)
+          value = value.__value__ while ::Ractorize::Thunk === value
         end
 
         value
