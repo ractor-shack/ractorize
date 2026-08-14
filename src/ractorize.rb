@@ -157,8 +157,6 @@ module Ractorize
 
       args.each { apply_auto_freeze(target_class, it) }
 
-      ::Ractorize.resolve_all_thunks(args)
-
       return nil if skip_move
 
       to_move(target_class, args)
