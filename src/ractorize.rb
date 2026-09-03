@@ -70,9 +70,8 @@ module Ractorize
     end
 
     def any_thunks?(structure)
-      # rubocop:disable Lint/UnreachableLoop
+      # rubocop:disable-next Lint/UnreachableLoop
       each_thunk(structure) { return true }
-      # rubocop:enable Lint/UnreachableLoop
       false
     end
 

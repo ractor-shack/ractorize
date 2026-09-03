@@ -16,9 +16,8 @@ RSpec.describe "predicate method that calls a non-predicate method on another ra
     globals.ractorized_a = Ractorize[RactorizedA].new
     array = [1, 2, 3]
 
-    # rubocop:disable Naming/PredicateMethod
+    # rubocop:disable-next Naming/PredicateMethod
     def array.is_included(i) = include?(i)
-    # rubocop:enable Naming/PredicateMethod
 
     array.freeze
     globals.ractorized_array = Ractorize[array]

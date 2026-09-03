@@ -8,9 +8,8 @@ require "ractorize"
 # String#is_empty (not ending in "?"):
 
 class String
-  # rubocop:disable Naming/PredicateMethod
+  # rubocop:disable-next Naming/PredicateMethod
   def is_empty = empty?
-  # rubocop:enable Naming/PredicateMethod
 end
 
 if Ractorize["asdf"].is_empty

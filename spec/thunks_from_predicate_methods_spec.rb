@@ -7,9 +7,8 @@ RSpec.describe "predicate method that calls a non-predicate method on another ra
     end
 
     class RactorizedB
-      # rubocop:disable Naming/PredicateMethod
+      # rubocop:disable-next Naming/PredicateMethod
       def is_sad = false
-      # rubocop:enable Naming/PredicateMethod
     end
 
     globals = Object.new

@@ -275,12 +275,11 @@ RSpec.describe Ractorize do
       it "can handle that as expected" do
         all = []
 
-        # rubocop:disable Lint/UnreachableLoop
+        # rubocop:disable-next Lint/UnreachableLoop
         result = ractorized_object.each_pair do |key, value|
           all << [key, value]
           break 100
         end
-        # rubocop:enable Lint/UnreachableLoop
 
         expect(all).to eq([["foo", "bar"]])
         expect(result).to be(100)
