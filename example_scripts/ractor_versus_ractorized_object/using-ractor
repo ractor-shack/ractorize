@@ -1,0 +1,39 @@
+#!/usr/bin/env ruby
+
+multiply_and_add = Ractor.new do
+  product = 1
+  sum = 0
+
+  loop do
+    case receive
+    in :add, number
+      sum += number
+    in :multiply, number
+      product *= number
+    in :add_and_multiply, number
+      sum += number
+      product *= number
+    in :sum, return_port
+      return_port.send(sum)
+    in :product, return_port
+      return_port.send(product)
+    in :stop
+      break
+    end
+  end
+
+  [product, sum]
+end
+
+multiply_and_add.send([:multiply, 2])
+multiply_and_add.send([:multiply, 3])
+multiply_and_add.send([:add, 4])
+multiply_and_add.send([:add, 5])
+multiply_and_add.send([:add_and_multiply, 6])
+
+port = Ractor::Port.new
+multiply_and_add.send([:product, port])
+puts "The product is #{port.receive}"
+
+multiply_and_add.send([:sum, port])
+puts "The sum is #{port.receive}"

@@ -1,0 +1,36 @@
+#!/usr/bin/env ruby
+
+require "bundler/setup"
+require "async"
+require "ractorize"
+
+class BankAccount
+  def initialize(balance = 0) = @balance = balance
+
+  attr_reader :balance
+
+  def deposit(amount)
+    current_balance = @balance
+    current_balance += amount
+    @balance = current_balance
+  end
+
+  def withdraw(amount)
+    current_balance = @balance
+    sleep 0.01
+    current_balance -= amount
+    @balance = current_balance
+  end
+end
+
+scheduler = Async::Scheduler.new
+Fiber.set_scheduler(scheduler)
+
+account = Ractorize[BankAccount].new(0)
+# account = BankAccount.new(0)
+
+Fiber.schedule { account.withdraw(1) }
+Fiber.schedule { account.deposit(1_000_000) }
+
+scheduler.run
+puts account.balance

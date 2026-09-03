@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+
+class MultiplyAndAdd
+  attr_accessor :product, :sum
+
+  def initialize
+    self.product = 1
+    self.sum = 0
+  end
+
+  def add(number) = self.sum += number
+  def multiply(number) = self.product *= number
+
+  def add_and_multiply(number)
+    add(number)
+    multiply(number)
+  end
+end
+
+multiply_and_add = MultiplyAndAdd.new
+
+multiply_and_add.multiply(2)
+multiply_and_add.multiply(3)
+multiply_and_add.add(4)
+multiply_and_add.add(5)
+multiply_and_add.add_and_multiply(6)
+
+puts "The product is #{multiply_and_add.product}"
+puts "The sum is #{multiply_and_add.sum}"

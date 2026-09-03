@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+
+require "ractorize"
+require "bigdecimal"
+
+srand(0)
+
+RANDOM_NUMBER_UPPER_BOUND = 2.7305
+
+arrays = Array.new(8) do
+  Array.new(10_000) { BigDecimal(rand * RANDOM_NUMBER_UPPER_BOUND) }
+end
+
+# arrays.map! { Ractorize[it] }
+pp arrays.map(&:size)
+
+answer = arrays.map do |array|
+  array.inject(:*)
+end.inject(:*)
+
+puts "answer (#{answer.n_significant_digits} significant digits): #{answer.to_s[0...10]}...#{answer.to_s[-10...-1]}"

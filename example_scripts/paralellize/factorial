@@ -1,0 +1,31 @@
+#!/usr/bin/env ruby
+
+$VERBOSE = nil
+
+require "ractorize"
+
+class Integer
+  def factorial
+    raise ArgumentError if negative?
+    return 1 if self <= 1
+
+    batch_count = 4
+    batches = (2..self).each_slice(self / batch_count).to_a
+
+    # batches.map! { Ractorize[it] }
+
+    products = batches.map { it.inject(:*) }
+    products.inject(:*)
+  end
+
+  # def factorial
+  #   raise ArgumentError if negative?
+  #   return 1 if self <= 1
+  #
+  #   (2..self).to_a.inject(:*)
+  # end
+end
+
+# puts 0.factorial
+puts 300_000.factorial.digits.size
+# puts 100_000.factorial.digits.size
